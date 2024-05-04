@@ -8,7 +8,7 @@ import {
   ButtonStyleTypes,
   TextStyleTypes,
 } from 'discord-interactions';
-import { VerifyDiscordRequest, getRandomEmoji, DiscordRequest } from './utils.js';
+import { VerifyDiscordRequest, parseTime, convertHoursMinutesToUTC } from './utils.js';
 import generateTimestampMessage from './timestamp.js';
 
 // Create an express app
@@ -69,27 +69,16 @@ function respondWithMessage(res, message, onlyShowToCreator){
 }
 function handleTimestampCommand(res, options){
   let message = '';
-  const timeUtc = parseTime(options[0].value);
+  const {hours, minutes} = parseTime(options[0].value);
+  const timeUtc = convertHoursMinutesToUTC(hours, minutes);
   if(timeUtc){
     message = generateTimestampMessage(timeUtc);
   }
   else{
-    message = 'Your time could not be parsed. This is your fault. Try again in the format: "in 9 hours 2 minutes" or "in 9h 2m"';
+    message = 'Your time could not be parsed. This is YOUR fault >:( Try again in the format: "in 9 hours 2 minutes" or "in 9h 2m"';
   }
 
   return respondWithMessage(res, message, true);
-}
-function parseTime(inputString) {
-    const match = inputString.match(/in (\d+)\s*(?:hours?|h)\s*(\d+)\s*(?:minutes?|m)/);
-    if (match) {
-        const hours = parseInt(match[1]);
-        const minutes = parseInt(match[2]);
-        const currentTime = new Date();
-        const futureTime = new Date(currentTime.getTime() + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000));
-        return Math.floor(futureTime.getTime() / 1000);
-    } else {
-        return null;
-    }
 }
 
 app.listen(PORT, () => {

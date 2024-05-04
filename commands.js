@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { InstallGlobalCommands } from './utils.js';
+import { InstallGlobalCommands, InstallGuildCommands } from './utils.js';
 
 const TIMESTAMP_COMMAND = {
     name: 'timestamp',
@@ -18,3 +18,4 @@ const TIMESTAMP_COMMAND = {
 export const ALL_COMMANDS = [TIMESTAMP_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
+InstallGuildCommands(process.env.APP_ID, ALL_COMMANDS);

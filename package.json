@@ -11,7 +11,8 @@
         "start": "node app.js",
         "register": "node commands.js",
         "register-guild": "node guildcommands.js",
-        "dev": "nodemon app.js"
+        "dev": "nodemon app.js",
+        "test": "jasmine" 
     },
     "author": "Casey Crocamo",
     "license": "MIT",
@@ -23,6 +24,7 @@
     },
     "devDependencies": {
         "@flydotio/dockerfile": "^0.5.7",
+        "jasmine": "^5.1.0",
         "nodemon": "^2.0.15"
     }
 }
