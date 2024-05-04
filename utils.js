@@ -50,7 +50,18 @@ export async function InstallGlobalCommands(appId, commands) {
     console.error(err);
   }
 }
+export async function InstallGuildCommands(appId, commands) {
+  // API endpoint to overwrite global commands
+  const guildId = '125485770659201025';
+  const guildEndpoint = `applications/${appId}/guilds/${guildId}/commands`;
 
+  try {
+    // This is calling the bulk overwrite endpoint: https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
+    await DiscordRequest(guildEndpoint, { method: 'PUT', body: commands });
+  } catch (err) {
+    console.error(err);
+  }
+}
 // Simple method that returns a random emoji from list
 export function getRandomEmoji() {
   const emojiList = ['😭','😄','😌','🤓','😎','😤','🤖','😶‍🌫️','🌏','📸','💿','👋','🌊','✨'];

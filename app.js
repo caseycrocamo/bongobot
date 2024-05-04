@@ -9,6 +9,7 @@ import {
   TextStyleTypes,
 } from 'discord-interactions';
 import { VerifyDiscordRequest, getRandomEmoji, DiscordRequest } from './utils.js';
+import generateTimestampMessage from './timestamp.js';
 
 // Create an express app
 const app = express();
@@ -16,13 +17,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 // Parse request body and verifies incoming requests using discord-interactions package
 app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
-
+app.get('/', async function(_, res) {
+  return res.send('IM ALIVE. STOP POKING ME.');
+});
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
  */
 app.post('/interactions', async function (req, res) {
   // Interaction type and data
-  const { type, id, data } = req.body;
+  const { type, data } = req.body;
 
   /**
    * Handle verification requests
@@ -36,13 +39,12 @@ app.post('/interactions', async function (req, res) {
    * See https://discord.com/developers/docs/interactions/application-commands#slash-commands
    */
   if (type === InteractionType.APPLICATION_COMMAND) {
-    const { name } = data;
+    const { name, options } = data;
 
     switch(name){
-        case 'test':
-            return respondWithMessage(res);
         case 'timestamp':
-            return respondWithModal(res);
+          console.log("matched on timestamp responding with message to only the user");
+          return handleTimestampCommand(res, options);
         default:
             console.log(`no match on interaction ${name}`);
             return null;
@@ -50,35 +52,44 @@ app.post('/interactions', async function (req, res) {
   }
 });
 
-function respondWithModal(res){
-    return res.send({
-        custom_id:'timestamp_modal',
-        type: InteractionResponseType.MODAL,
-        components: [{
-            type: MessageComponentTypes.ACTION_ROW,
-            components: [{
-              type: MessageComponentTypes.INPUT_TEXT,
-              custom_id: 'time',
-              label: 'Time',
-              style: TextStyleTypes.SHORT,
-              min_length: 1,
-              max_length: 4000,
-              placeholder: "5:00 pm",
-              required: true
-            }]
-          }]
-    });
+function generateFlags(onlyShowToCreator){
+  if(onlyShowToCreator){
+    return 1 << 6;
+  }
 }
-
 // Send a message into the channel where command was triggered from
-function respondWithMessage(res){
+function respondWithMessage(res, message, onlyShowToCreator){
     return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-            // Fetches a random emoji to send from a helper function
-            content: 'hello world ' + getRandomEmoji(),
+            content: message,
+            flags: generateFlags(onlyShowToCreator)
         },
     });
+}
+function handleTimestampCommand(res, options){
+  let message = '';
+  const timeUtc = parseTime(options[0].value);
+  if(timeUtc){
+    message = generateTimestampMessage(timeUtc);
+  }
+  else{
+    message = 'Your time could not be parsed. This is your fault. Try again in the format: "in 9 hours 2 minutes" or "in 9h 2m"';
+  }
+
+  return respondWithMessage(res, message, true);
+}
+function parseTime(inputString) {
+    const match = inputString.match(/in (\d+)\s*(?:hours?|h)\s*(\d+)\s*(?:minutes?|m)/);
+    if (match) {
+        const hours = parseInt(match[1]);
+        const minutes = parseInt(match[2]);
+        const currentTime = new Date();
+        const futureTime = new Date(currentTime.getTime() + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000));
+        return Math.floor(futureTime.getTime() / 1000);
+    } else {
+        return null;
+    }
 }
 
 app.listen(PORT, () => {
