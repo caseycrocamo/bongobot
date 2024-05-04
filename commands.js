@@ -9,7 +9,7 @@ const TIMESTAMP_COMMAND = {
       {
         type: 3,
         name: 'relative_time',
-        description:"use the format: in 9 hours 30 minutes. You must include both hours and minutes and start with the word in. You can shorten hours to h and minutes to m. Ex. in 9h 10m",
+        description:"use the format: in 9 hours 30 minutes or in 9h 10m",
         required: true
       }
     ]
