@@ -12,11 +12,12 @@
         "register": "node commands.js",
         "register-guild": "node guildcommands.js",
         "dev": "nodemon app.js",
-        "test": "jasmine" 
+        "test": "jasmine"
     },
     "author": "Casey Crocamo",
     "license": "MIT",
     "dependencies": {
+        "date-format-parse": "^0.2.7",
         "discord-interactions": "^3.2.0",
         "dotenv": "^16.0.3",
         "express": "^4.18.2",
