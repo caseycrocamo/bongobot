@@ -51,7 +51,7 @@ export async function InstallGlobalCommands(appId, commands) {
   }
 }
 export async function InstallGuildCommands(appId, commands) {
-  // API endpoint to overwrite global commands
+  // API endpoint to overwrite guild commands
   const guildId = '125485770659201025';
   const guildEndpoint = `applications/${appId}/guilds/${guildId}/commands`;
 
@@ -60,6 +60,39 @@ export async function InstallGuildCommands(appId, commands) {
     await DiscordRequest(guildEndpoint, { method: 'PUT', body: commands });
   } catch (err) {
     console.error(err);
+  }
+}
+export async function InstallGuildRole(guildId, role) {
+  // API endpoint to add guild role
+  const endpoint = `/guilds/${guildId}/roles`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'POST', body: role });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
+  }
+}
+export async function ModifyGuildRolePosition(guildId, role) {
+  // API endpoint to add guild role
+  const endpoint = `/guilds/${guildId}/roles`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'PATCH', body: role });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
+  }
+}
+export async function GetGuildRoles(guildId) {
+  // API endpoint to add guild role
+  const endpoint = `/guilds/${guildId}/roles`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'GET' });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
   }
 }
 // Simple method that returns a random emoji from list

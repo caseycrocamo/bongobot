@@ -1,6 +1,19 @@
 import 'dotenv/config';
 import { InstallGlobalCommands, InstallGuildCommands } from './utils.js';
 
+const PROFILE_COMMAND = {
+    name: 'profile',
+    description: 'show off your favorite gw2 class with a matching name color and badge in this server',
+    type: 1,
+    options: [
+        {
+            name: 'class',
+            description: 'What is your current favorite class and why is it mesmer?',
+            type: 3,
+            required: true
+        }
+    ]
+};
 const TIMESTAMP_COMMAND = {
     name: 'timestamp',
     description: 'create an organic, free range timestamp that discord loves to maunch',
@@ -94,7 +107,7 @@ const TIMESTAMP_COMMAND = {
 };
 
 
-export const ALL_COMMANDS = [TIMESTAMP_COMMAND];
+export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND];
 
-InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
+//InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 InstallGuildCommands(process.env.APP_ID, ALL_COMMANDS);

@@ -11,6 +11,7 @@
         "start": "node app.js",
         "register": "node commands.js",
         "register-guild": "node guildcommands.js",
+        "register-roles": "node roles.js",
         "dev": "nodemon app.js",
         "test": "jasmine"
     },
