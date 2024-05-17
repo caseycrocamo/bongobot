@@ -88,6 +88,7 @@ export async function GetGuildRoles(guildId) {
   const endpoint = `/guilds/${guildId}/roles`;
 
   try {
+    console.log('getting roles from guild ', guildId);
     const request = await DiscordRequest(endpoint, { method: 'GET' });
     return await request.json();
   } catch (err) {

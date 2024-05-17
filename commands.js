@@ -101,5 +101,5 @@ const TIMESTAMP_COMMAND = {
 
 export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND];
 
-//InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
+InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 InstallGuildCommands(process.env.APP_ID, process.env.GUILD_ID, ALL_COMMANDS);
