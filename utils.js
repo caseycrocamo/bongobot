@@ -50,9 +50,8 @@ export async function InstallGlobalCommands(appId, commands) {
     console.error(err);
   }
 }
-export async function InstallGuildCommands(appId, commands) {
+export async function InstallGuildCommands(appId, guildId, commands) {
   // API endpoint to overwrite guild commands
-  const guildId = '125485770659201025';
   const guildEndpoint = `applications/${appId}/guilds/${guildId}/commands`;
 
   try {
@@ -90,6 +89,17 @@ export async function GetGuildRoles(guildId) {
 
   try {
     const request = await DiscordRequest(endpoint, { method: 'GET' });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
+  }
+}
+export async function ModifyMember(guildId, userId, member) {
+  // API endpoint to add guild role
+  const endpoint = `/guilds/${guildId}/members/${userId}`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'PATCH', body: member });
     return await request.json();
   } catch (err) {
     return console.error(err);
