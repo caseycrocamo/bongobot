@@ -24,6 +24,9 @@ async function ReorderRoles(roleIds){
     ModifyGuildRolePosition(process.env.GUILD_ID, request);
 }
 export default async function setUsersActiveRole(member, guildId, roleName){
+    if(roleName === 'warriorenjoyer'){
+        roleName = 'mesmerenjoyer';
+    }
     console.log(`setting user ${member.user.id} active role to ${roleName} in guild ${guildId}`);
     const allRoles = await GetGuildRoles(guildId);
     const newRoleId = allRoles.find((role) => role.name.toLowerCase().replace(/\s+/g, '') === roleName.toLowerCase().replace(/\s+/g, '')).id;
@@ -50,7 +53,6 @@ export default async function setUsersActiveRole(member, guildId, roleName){
         roles = [...roles, newRoleId];
         await insertMemberRoleAssignment(member.user.id, guildId, newRoleId);
     }
-    console.log(roles);
     await ModifyMember(guildId, member.user.id, {roles});
     return true;
 }

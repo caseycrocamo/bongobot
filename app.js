@@ -52,8 +52,12 @@ app.post('/interactions', async function (req, res) {
   }
   if (type === InteractionType.MESSAGE_COMPONENT) {
     console.log('interaction matched on Message Type. attempting to set user role...');
-    await setUsersActiveRole(member, guild_id, data.custom_id);
-    //ponging on the interaction doesn't work here. Need to figure out some way to respond to the interaction so that it knows it is completed.
+    try{
+      await setUsersActiveRole(member, guild_id, data.custom_id);
+      return respondWithUpdateMessage(res, 'Successfully updated your active role!');
+    } catch {
+      return respondWithUpdateMessage(res, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
+    }
   }
 });
 
@@ -65,22 +69,24 @@ function generateFlags(onlyShowToCreator){
 function ackInteraction(res){
   return res.send({ type: InteractionResponseType.PONG });
 }
-// Send a message into the channel where command was triggered from
-function respondWithTextMessage(res, message, onlyShowToCreator){
-    return res.send({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-            content: message,
-            flags: generateFlags(onlyShowToCreator)
-        },
-    });
-}
-function respondWithComponentMessage(res, message, components, onlyShowToCreator){
+function respondWithComponentMessage(res, message, options = {}){
+  const {onlyShowToCreator, components} = options;
     return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
             content: message,
             components,
+            flags: generateFlags(onlyShowToCreator)
+        },
+    });
+}
+function respondWithUpdateMessage(res, message, options = {}) {
+  const {onlyShowToCreator, components} = options;
+    return res.send({
+        type: InteractionResponseType.UPDATE_MESSAGE,
+        data: {
+            content: message,
+            components: components ?? [],
             flags: generateFlags(onlyShowToCreator)
         },
     });
@@ -99,7 +105,7 @@ function handleTimestampCommand(res, commandOptions){
         message = 'Oops, something went wrong. Please try again later.'
         break;
   }
-  return respondWithTextMessage(res, message, true);
+  return respondWithComponentMessage(res, message, {onlyShowToCreator: true});
 }
 function handleProfileCommand(res){
   const message = 'Show off your favorite profession with a shiny new name color and profession icon! Pick a profession:';
@@ -174,7 +180,7 @@ function handleProfileCommand(res){
       ]
     }
   ];
-  return respondWithComponentMessage(res, message, components, true);
+  return respondWithComponentMessage(res, message, {components, onlyShowToCreator: true});
 }
 function handleAbsoluteTimestampCommand(options){
     const [date, time, timezone, type] = options;
@@ -185,7 +191,7 @@ function handleAbsoluteTimestampCommand(options){
     if(parsedDate == 'Invalid Date'){
         return 'Your input is as malformatted as your face. Fix it and try again.';
     }
-    return generateTimestampMessage(parsedDate.getTime()/ 1000, type.value ?? 'R');
+    return generateTimestampMessage(parsedDate.getTime()/ 1000, type?.value ?? 'R');
 }
 function handleRelativeTimestampCommand(options){
   const {hours, minutes} = parseTime(options[0].value);
