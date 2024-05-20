@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { InstallGlobalCommands, InstallGuildCommands } from './utils.js';
+import { InstallGlobalCommands, InstallGuildCommands } from './discordclient.js';
 
 const PROFILE_COMMAND = {
     name: 'profile',
@@ -102,4 +102,4 @@ const TIMESTAMP_COMMAND = {
 export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
-//InstallGuildCommands(process.env.APP_ID, process.env.GUILD_ID, ALL_COMMANDS);
+InstallGuildCommands(process.env.APP_ID, process.env.GUILD_ID, ALL_COMMANDS);

@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { GetGuildRoles, InstallGuildRole, ModifyGuildRolePosition, ModifyMember } from "./utils.js";
-import { getMemberRole, insertMemberRoleAssignment, removeMemberRole, updateMemberRoleAssignment } from './mongo.js';
-import CustomIdToRoleNameMap from './roles/roleutils.js';
+import { GetGuildRoles, InstallGuildRole, ModifyGuildRolePosition, ModifyMember } from "../discordclient.js";
+import { getMemberRole, insertMemberRoleAssignment, removeMemberRole, updateMemberRoleAssignment } from '../mongo.js';
+import CustomIdToRoleNameMap from './roleutils.js';
 
 
 export async function AddGuildRoles(roleList){

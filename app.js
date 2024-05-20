@@ -4,9 +4,9 @@ import {
   InteractionType,
   InteractionResponseType,
 } from 'discord-interactions';
-import { VerifyDiscordRequest, parseTime, convertHoursMinutesToUTC } from './utils.js';
-import generateTimestampMessage from './timestamp.js';
-import setUsersActiveRole, { removeUsersCurrentRole } from './roles.js';
+import { VerifyDiscordRequest } from './discordclient.js';
+import generateTimestampMessage, { parseTime, convertHoursMinutesToUTC } from './timestamp.js';
+import setUsersActiveRole, { removeUsersCurrentRole } from './roles/roles.js';
 import { parse } from 'date-format-parse';
 import { choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, rangerenjoyer, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
 

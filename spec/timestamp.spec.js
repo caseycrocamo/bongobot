@@ -1,4 +1,4 @@
-import { parseTime, convertHoursMinutesToUTC } from '../utils.js';
+import { parseTime } from '../timestamp.js';
 describe("parseTime", function() {
     const testCases = [
         {
