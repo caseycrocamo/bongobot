@@ -10,7 +10,7 @@
     "scripts": {
         "start": "node app.js",
         "register-commands": "node commands.js",
-        "register-roles": "node roles.js",
+        "register-roles": "node installroles.js",
         "mongo": "node mongo.js",
         "dev": "nodemon app.js",
         "test": "jasmine"

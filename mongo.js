@@ -65,6 +65,20 @@ async function getFromCollection(collection, query){
         await client.close();
     }
 }
+async function removeFromCollection(collection, query){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection(collection);
+        const deletionResponse = await col.deleteOne(query);
+        return await deletionResponse.acknowledged;
+    } catch {
+        console.error(`Issue deleting from ${collection}`);
+    }
+    finally {
+        await client.close();
+    }
+}
 export async function insertMemberRoleAssignment(userId, guildId, roleId){
     const doc = { userId, guildId, roleId };
     const result = await insertOne("MemberRoles", doc);
@@ -83,6 +97,10 @@ export async function updateMemberRoleAssignment(userId, guildId, roleId){
     const result = await updateOne("MemberRoles", filter, updateDocument);
     console.log('A MemberRole ',filter, `was updated to role: ${roleId}`);
     return result;
+}
+export async function removeMemberRole(userId, guildId, roleId){
+    const query = {userId, guildId, roleId};
+    return await removeFromCollection('MemberRoles', query);
 }
 export async function getMemberRole(userId, guildId){
     const query = { userId, guildId};
