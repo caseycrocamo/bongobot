@@ -45,9 +45,6 @@ export async function removeUsersCurrentRole(member, guildId){
 
 export default async function setUsersActiveRole(member, guildId, customId){
     let roleName = CustomIdToRoleNameMap[customId];
-    if(roleName === 'Warrior Enjoyer'){
-        roleName = 'Mesmer Enjoyer';
-    }
     console.log(`setting user ${member.user.id} active role to "${roleName}" in guild ${guildId}`);
     const allRoles = await GetGuildRoles(guildId);
     const newRoleId = allRoles.find((role) => role.name.toLowerCase().replace(/\s+/g, '') === roleName.toLowerCase().replace(/\s+/g, '')).id;
