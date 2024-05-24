@@ -6,6 +6,38 @@ const PROFILE_COMMAND = {
     description: 'customize your appearance in this server with a name color and badge',
     type: 1
 };
+const ACHIEVEMENT_COMMAND = {
+    name: 'achievements',
+    description: 'view achievements and unlock titles for your profile',
+    type: 1,
+    options: [
+        {
+            name: 'view',
+            description: 'displays all available achievements and your status in achieving them',
+            type: 1
+        },
+        {
+            name: 'achieve',
+            description: 'complete an achievement and unlock a title for your profile!',
+            type: 1,
+            options: [
+                {
+                    type: 3,
+                    name: 'achievement',
+                    description:"name of the achievement to complete",
+                    required: true
+                },
+                {
+                    type: 3,
+                    name: 'proof',
+                    description:"proof of completion - dps logs, screenshot, etc.",
+                    required: true
+                }
+            ]
+        }
+
+    ]
+};
 const TIMESTAMP_COMMAND = {
     name: 'timestamp',
     description: 'create an organic, free range timestamp that discord loves to maunch',
@@ -99,7 +131,7 @@ const TIMESTAMP_COMMAND = {
 };
 
 
-export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND];
+export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND];
 
-InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
+//InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 InstallGuildCommands(process.env.APP_ID, process.env.GUILD_ID, ALL_COMMANDS);

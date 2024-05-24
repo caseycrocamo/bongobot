@@ -46,6 +46,9 @@ app.post('/interactions', async function (req, res) {
         case 'profile':
           console.log('matched on profile command. responding with a message to allow the user to modify their active role.')
           return handleProfileCommand(res);
+        case 'achievements':
+          console.log('matched on achievements command.')
+          return handleAchievementsCommand(res, options);
         default:
             console.log(`no match on interaction ${name}`);
             return null;
@@ -65,6 +68,21 @@ app.post('/interactions', async function (req, res) {
     }
   }
 });
+async function handleAchievementsCommand(res, options){
+  let message = '';
+  const {name, options} = commandOptions[0];
+  switch(name){
+    case 'view':
+        break;
+    case 'achieve':
+        message = handleRelativeTimestampCommand(options);
+        break;
+    default:
+        message = 'Oops, something went wrong. Please try again later.'
+        break;
+  }
+  return respondWithComponentMessage(res, message, {onlyShowToCreator: true});
+}
 async function handleRemoveRole(res, member, guild_id){
     try{
       const roleRemoved = await removeUsersCurrentRole(member, guild_id);
