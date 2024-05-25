@@ -14,3 +14,4 @@ export const warriorenjoyer = 'warriorenjoyer';
 export const guardianenjoyer = 'guardianenjoyer';
 //achievement roles
 export const wildcard = 'wildcard';
+export const reigningjpchamp = 'reigningjpchamp';
