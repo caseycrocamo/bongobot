@@ -106,5 +106,37 @@ export async function getMemberRole(userId, guildId){
     const query = { userId, guildId};
     return await getFromCollection("MemberRoles", query);
 }
+export async function insertMemberAchievement(userId, guildId, achievementId){
+    const doc = {userId, guildId, achievementId}
+    const result = await insertOne("MemberAchievement", doc);
+    console.log(
+    `A MemberAchievement {${doc}} was inserted with document _id: ${result.insertedId}`,
+    );
+    return result.insertedId;
+}
+export async function getAllMemberAchievements(userId, guildId){
+    const query = {userId, guildId}
+    return await getFromCollection("MemberAchievement", query);
+}
+export async function getMemberAchievement(userId, guildId, achievementId){
+    const query = {userId, guildId, achievementId}
+    return await getFromCollection("MemberAchievement", query);
+}
+export async function insertGrantAchievementState(userId, targetId){
+    const doc = {userId, targetId}
+    const result = await insertOne("GrantAchievementState", doc);
+    console.log(
+    `A GrantAchievementState {${doc}} was inserted with document _id: ${result.insertedId}`,
+    );
+    return result.insertedId;
+}
+export async function getGrantAchievementState(userId){
+    const query = {userId}
+    return await getFromCollection("GrantAchievementState", query);
+}
+export async function removeGrantAchievementState(userId){
+    const query = {userId}
+    return await removeFromCollection("GrantAchievementState", query);
+}
 
 await ping();

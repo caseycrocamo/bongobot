@@ -8,7 +8,10 @@ import { VerifyDiscordRequest } from './discordclient.js';
 import generateTimestampMessage, { parseTime, convertHoursMinutesToUTC } from './timestamp.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from './roles/roles.js';
 import { parse } from 'date-format-parse';
-import { choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, rangerenjoyer, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
+import { getGrantAchievementState, getMemberAchievement, insertGrantAchievementState, insertMemberAchievement, removeGrantAchievementState } from './mongo.js';
+import { getUsersAchievements } from './achievements.js';
+import { ACHIEVEMENT_ROLES } from './roles/achievementRoles.js';
 
 // Create an express app
 const app = express();
@@ -38,7 +41,7 @@ app.post('/interactions', async function (req, res) {
    * See https://discord.com/developers/docs/interactions/application-commands#slash-commands
    */
   if (type === InteractionType.APPLICATION_COMMAND) {
-    const { name, options } = data;
+    const { name, options, target_id } = data;
     switch(name){
         case 'timestamp':
           console.log("matched on timestamp responding with message to only the user");
@@ -49,6 +52,9 @@ app.post('/interactions', async function (req, res) {
         case 'achievements':
           console.log('matched on achievements command.')
           return handleAchievementsCommand(res, options);
+        case 'Grant Achievement':
+          console.log('matched on grant achievmement command.')
+          return handleGrantAchievementCommand(res, member, target_id);
         default:
             console.log(`no match on interaction ${name}`);
             return null;
@@ -56,11 +62,14 @@ app.post('/interactions', async function (req, res) {
   }
   if (type === InteractionType.MESSAGE_COMPONENT) {
     console.log('interaction matched on Message Type. responding based on the custom_id...');
-    switch(data.custom_id){
+    const {custom_id} = data;
+    switch(custom_id){
       case choose_achievement:
-        return respondWithAchievementChoices(res);
+        return respondWithAchievementChoices(res, member.user.id, guild_id);
       case choose_profession:
         return respondWithProfessionChoices(res);
+      case achievement_name_dropdown:
+        return await handleAssignAchievement(res, member, guild_id, data.values[0]);
       case remove_all:
         return await handleRemoveRole(res, member, guild_id);
       default: 
@@ -68,7 +77,50 @@ app.post('/interactions', async function (req, res) {
     }
   }
 });
-async function handleAchievementsCommand(res, options){
+async function handleAssignAchievement(res, callingMember, guild_id, achievement_id){
+    try{
+        const grantAchievementState = await getGrantAchievementState(callingMember.user.id);
+        await removeGrantAchievementState(callingMember.user.id)
+        const existingMemberAchievement = await getMemberAchievement(grantAchievementState[0].targetId, guild_id, achievement_id);
+        if(existingMemberAchievement[0]){
+            console.log('User (id: ', grantAchievementState[0].targetId, ') already has the achievement ', achievement_id, '. Exiting early.');
+            return respondWithUpdateMessage(res, 'User already has the assigned achievement.')
+        }
+        await insertMemberAchievement(grantAchievementState[0].targetId, guild_id, achievement_id);
+        return respondWithUpdateMessage(res, 'Achievement assigned successfully.');
+    } catch{
+        respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
+    }
+}
+async function handleGrantAchievementCommand(res, callingMember, target_id){
+    try {
+        await insertGrantAchievementState(callingMember.user.id, target_id);
+    } catch{
+        respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.')
+    }
+    const components = [
+        {
+            type: 1,
+            components: [
+                {
+                type: 3,
+                    custom_id: achievement_name_dropdown,
+                    options:[
+                        {
+                            label: "Reigning Jumping Puzzle Champion",
+                            value: reigningjpchamp,
+                            description: "Winner of the guild jumping puzzle race!",
+                        },
+                    ],
+                    placeholder: "Choose an Achievement",
+                    min_values: 1,
+                    max_values: 1
+        }]
+        },
+    ];
+    respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
+}
+async function handleAchievementsCommand(res, commandOptions){
   let message = '';
   const {name, options} = commandOptions[0];
   switch(name){
@@ -102,22 +154,40 @@ async function handleProfileUpdate(res, member, guild_id, role){
     }
 }
 
-async function respondWithAchievementChoices(res){
-  const message = 'Which achievement would you like to show off? It will set the color of your name and your badge in this server.'
-  const components = [
-    {
-      type: 1,
-      components: [
-          {
-              type: 2,
-              label: "Wildcard",
-              style: 1,
-              custom_id: wildcard
-          },
-      ]
-    },
-  ];
-  return respondWithUpdateMessage(res, message, {components});
+async function respondWithAchievementChoices(res, userId, guildId){
+    try{
+        const achievementRolesMap = {};
+        ACHIEVEMENT_ROLES.map((achievementRole) => achievementRolesMap[achievementRole.custom_id] = achievementRole.name);
+        const userAchievements = await getUsersAchievements(userId, guildId);
+        const message = 'Which achievement would you like to show off? It will set the color of your name and your badge in this server.'
+        const achievementChoices = [
+            {
+                type: 2,
+                label: "Wildcard",
+                style: 1,
+                custom_id: wildcard
+            },
+        ];
+        if(userAchievements){
+            console.log('found user achievements. Adding them to the achievement choices.');
+            userAchievements.map((achievement) => achievementChoices.push({
+                type: 2,
+                label: achievementRolesMap[achievement],
+                style: 1,
+                custom_id: achievement
+            }))
+        }
+
+        const components = [
+            {
+            type: 1,
+            components: achievementChoices
+            },
+        ];
+        return respondWithUpdateMessage(res, message, { components});
+    } catch{
+      return respondWithUpdateMessage(res, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
+    }
 }
 
 function generateFlags(onlyShowToCreator){
@@ -127,6 +197,17 @@ function generateFlags(onlyShowToCreator){
 }
 function ackInteraction(res){
   return res.send({ type: InteractionResponseType.PONG });
+}
+function respondWithModal(res, message, options = {}){
+  const {onlyShowToCreator, components} = options;
+    return res.send({
+        type: InteractionResponseType.MODAL,
+        data: {
+            content: message,
+            components,
+            flags: generateFlags(onlyShowToCreator)
+        },
+    });
 }
 function respondWithComponentMessage(res, message, options = {}){
   const {onlyShowToCreator, components} = options;
