@@ -8,10 +8,11 @@ import { VerifyDiscordRequest } from './discordclient.js';
 import generateTimestampMessage, { parseTime, convertHoursMinutesToUTC } from './timestamp.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from './roles/roles.js';
 import { parse } from 'date-format-parse';
-import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, scourgemd, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
 import { getGrantAchievementState, getMemberAchievement, insertGrantAchievementState, insertMemberAchievement, removeGrantAchievementState } from './mongo.js';
 import { getUsersAchievements } from './achievements.js';
-import { ACHIEVEMENT_ROLES } from './roles/achievementRoles.js';
+import { ACHIEVEMENT_ROLES, GRIM_REAPER } from './roles/achievementRoles.js';
+import { memberCanManageRoles } from './member.js';
 
 // Create an express app
 const app = express();
@@ -94,9 +95,14 @@ async function handleAssignAchievement(res, callingMember, guild_id, achievement
 }
 async function handleGrantAchievementCommand(res, callingMember, target_id){
     try {
+        const authorized = await memberCanManageRoles(callingMember);
+        if(!authorized){
+          console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
+          return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
+        }
         await insertGrantAchievementState(callingMember.user.id, target_id);
     } catch{
-        respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.')
+        return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
     const components = [
         {
@@ -111,6 +117,16 @@ async function handleGrantAchievementCommand(res, callingMember, target_id){
                             value: reigningjpchamp,
                             description: "Winner of the guild jumping puzzle race!",
                         },
+                        {
+                            label: "Grim Reaper",
+                            value: grimreaper,
+                            description: "Has achieved 25k DPS on a raid / strike boss as a Reaper.",
+                        },
+                        {
+                            label: "Scourge MD",
+                            value: scourgemd,
+                            description: "resurrected 30 players in a single fight.",
+                        },
                     ],
                     placeholder: "Choose an Achievement",
                     min_values: 1,
@@ -118,7 +134,7 @@ async function handleGrantAchievementCommand(res, callingMember, target_id){
         }]
         },
     ];
-    respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
+    return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
 }
 async function handleAchievementsCommand(res, commandOptions){
   let message = '';
