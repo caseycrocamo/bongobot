@@ -106,3 +106,14 @@ export async function ModifyMember(guildId, userId, member) {
     return console.error(err);
   }
 }
+export async function GetMember(guildId, memberId) {
+  // API endpoint to add guild role
+  const endpoint = `/guilds/${guildId}/members/${memberId}`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'GET' });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
+  }
+}

@@ -133,8 +133,12 @@ const GRANT_MEMBER_ACHIEVEMENT_COMMAND = {
     name: 'Grant Achievement',
     type: 2
 }
+const SET_MEMBER_PROFILE_COMMAND = {
+    name: 'Set Profile',
+    type: 2
+}
 
-export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND, GRANT_MEMBER_ACHIEVEMENT_COMMAND];
+export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND, GRANT_MEMBER_ACHIEVEMENT_COMMAND, SET_MEMBER_PROFILE_COMMAND];
 
-//InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
+InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 InstallGuildCommands(process.env.APP_ID, process.env.GUILD_ID, ALL_COMMANDS);

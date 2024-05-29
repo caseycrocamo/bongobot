@@ -1,5 +1,6 @@
-//achievements
+//commands
 export const achievement_name_dropdown = 'achievement_name';
+export const profile_name_dropdown = 'profile_name';
 //profile choices
 export const remove_all = 'remove_all';
 export const choose_profession = 'choose_profession';

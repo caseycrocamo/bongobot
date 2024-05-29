@@ -4,15 +4,16 @@ import {
   InteractionType,
   InteractionResponseType,
 } from 'discord-interactions';
-import { VerifyDiscordRequest } from './discordclient.js';
+import { GetMember, VerifyDiscordRequest } from './discordclient.js';
 import generateTimestampMessage, { parseTime, convertHoursMinutesToUTC } from './timestamp.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from './roles/roles.js';
 import { parse } from 'date-format-parse';
-import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, scourgemd, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
-import { getGrantAchievementState, getMemberAchievement, insertGrantAchievementState, insertMemberAchievement, removeGrantAchievementState } from './mongo.js';
+import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, scourgemd, thiefenjoyer, warriorenjoyer, wildcard } from './customids.js';
+import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from './mongo.js';
 import { getUsersAchievements } from './achievements.js';
 import { ACHIEVEMENT_ROLES, GRIM_REAPER } from './roles/achievementRoles.js';
 import { memberCanManageRoles } from './member.js';
+import { PROFESSION_ROLES } from './roles/professionRoles.js';
 
 // Create an express app
 const app = express();
@@ -56,6 +57,9 @@ app.post('/interactions', async function (req, res) {
         case 'Grant Achievement':
           console.log('matched on grant achievmement command.')
           return handleGrantAchievementCommand(res, member, target_id);
+        case 'Set Profile':
+          console.log('matched on set profile command.')
+          return handleSetProfileCommand(res, member, target_id);
         default:
             console.log(`no match on interaction ${name}`);
             return null;
@@ -71,6 +75,8 @@ app.post('/interactions', async function (req, res) {
         return respondWithProfessionChoices(res);
       case achievement_name_dropdown:
         return await handleAssignAchievement(res, member, guild_id, data.values[0]);
+      case profile_name_dropdown:
+        return await handleSetProfile(res, member, guild_id, data.values[0]);
       case remove_all:
         return await handleRemoveRole(res, member, guild_id);
       default: 
@@ -78,10 +84,23 @@ app.post('/interactions', async function (req, res) {
     }
   }
 });
+async function handleSetProfile(res, callingMember, guild_id, role){
+    try{
+        const grantAchievementState = await getMemberCommandState(callingMember.user.id);
+        //handle null state
+        await removeMemberCommandState(callingMember.user.id)
+        const member = GetMember(guild_id, grantAchievementState[0].targetId);
+        //handle no member found
+        await setUsersActiveRole(member, guild_id, role);
+        return respondWithUpdateMessage(res, 'Successfully updated member\' role!');
+    } catch{
+        respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
+    }
+}
 async function handleAssignAchievement(res, callingMember, guild_id, achievement_id){
     try{
-        const grantAchievementState = await getGrantAchievementState(callingMember.user.id);
-        await removeGrantAchievementState(callingMember.user.id)
+        const grantAchievementState = await getMemberCommandState(callingMember.user.id);
+        await removeMemberCommandState(callingMember.user.id)
         const existingMemberAchievement = await getMemberAchievement(grantAchievementState[0].targetId, guild_id, achievement_id);
         if(existingMemberAchievement[0]){
             console.log('User (id: ', grantAchievementState[0].targetId, ') already has the achievement ', achievement_id, '. Exiting early.');
@@ -100,7 +119,7 @@ async function handleGrantAchievementCommand(res, callingMember, target_id){
           console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
           return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
-        await insertGrantAchievementState(callingMember.user.id, target_id);
+        await insertMemberCommandState(callingMember.user.id, target_id);
     } catch{
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
@@ -134,6 +153,46 @@ async function handleGrantAchievementCommand(res, callingMember, target_id){
         }]
         },
     ];
+    return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
+}
+async function handleSetProfileCommand(res, callingMember, target_id){
+    try {
+        const authorized = await memberCanManageRoles(callingMember);
+        if(!authorized){
+          console.warn('User ', callingMember.user.id, " does not have permission to set profiles.");
+          return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
+        }
+        await insertMemberCommandState(callingMember.user.id, target_id);
+    } catch{
+        return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
+    }
+    const professionOptions = PROFESSION_ROLES.map((role) => {
+        return {
+                  label: role.name,
+                  value: role.custom_id
+                };
+    })
+    const achievementOptions = ACHIEVEMENT_ROLES.map((role) => {
+        return {
+                  label: role.name,
+                  value: role.custom_id
+                };
+    })
+    const options = [...achievementOptions, ...professionOptions];
+    const components = [
+        {
+            type: 1,
+            components: [
+                {
+                  type: 3,
+                  custom_id: profile_name_dropdown,
+                  options,
+                  placeholder: "Choose an Achievement",
+                  min_values: 1,
+                  max_values: 1
+      }]
+      },
+  ];
     return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
 }
 async function handleAchievementsCommand(res, commandOptions){
