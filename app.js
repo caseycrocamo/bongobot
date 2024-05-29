@@ -84,6 +84,9 @@ app.post('/interactions', async function (req, res) {
     }
   }
 });
+async function handleCommandNotImplemented(res){
+  return respondWithComponentMessage(res, 'Command is not implemented yet. Try again later or message @sif', {onlyShowToCreator: true});
+}
 async function handleSetProfile(res, callingMember, guild_id, role){
     try{
         const grantAchievementState = await getMemberCommandState(callingMember.user.id);
@@ -198,11 +201,11 @@ async function handleSetProfileCommand(res, callingMember, target_id){
 async function handleAchievementsCommand(res, commandOptions){
   let message = '';
   const {name, options} = commandOptions[0];
+  return handleCommandNotImplemented(res);
   switch(name){
     case 'view':
         break;
     case 'achieve':
-        message = handleRelativeTimestampCommand(options);
         break;
     default:
         message = 'Oops, something went wrong. Please try again later.'
