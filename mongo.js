@@ -29,6 +29,7 @@ async function insertOne(collection, doc){
         const db = client.db("BongoBot");
         const col = db.collection(collection);
         const result = await col.insertOne(doc);
+        console.log(result);
         return result.insertedId;
     } catch {
         console.error(`Issue inserting into ${collection}`);
@@ -82,10 +83,8 @@ async function removeFromCollection(collection, query){
 export async function insertMemberRoleAssignment(userId, guildId, roleId){
     const doc = { userId, guildId, roleId };
     const result = await insertOne("MemberRoles", doc);
-    console.log(
-    `A MemberRole {${doc}} was inserted with document _id: ${result.insertedId}`,
-    );
-    return result.insertedId;
+    console.log('A MemberRole ', doc, ' was inserted');
+    return result._id;
 }
 export async function updateMemberRoleAssignment(userId, guildId, roleId){
     const filter = { userId, guildId};

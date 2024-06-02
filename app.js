@@ -90,13 +90,18 @@ async function handleCommandNotImplemented(res){
 async function handleSetProfile(res, callingMember, guild_id, role){
     try{
         const grantAchievementState = await getMemberCommandState(callingMember.user.id);
+        console.log('found state object: ', grantAchievementState);
         //handle null state
         await removeMemberCommandState(callingMember.user.id)
-        const member = GetMember(guild_id, grantAchievementState[0].targetId);
+        const targetId = grantAchievementState[0].targetId;
+        const member = await GetMember(guild_id, targetId);
+        console.log(member);
+        console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
         await setUsersActiveRole(member, guild_id, role);
-        return respondWithUpdateMessage(res, 'Successfully updated member\' role!');
-    } catch{
+        return respondWithUpdateMessage(res, 'Successfully updated member\'s role!');
+    } catch(err){
+        console.error(err);
         respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
     }
 }
@@ -111,7 +116,8 @@ async function handleAssignAchievement(res, callingMember, guild_id, achievement
         }
         await insertMemberAchievement(grantAchievementState[0].targetId, guild_id, achievement_id);
         return respondWithUpdateMessage(res, 'Achievement assigned successfully.');
-    } catch{
+    } catch(err){
+        console.error(err);
         respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
     }
 }
@@ -123,7 +129,8 @@ async function handleGrantAchievementCommand(res, callingMember, target_id){
           return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
         await insertMemberCommandState(callingMember.user.id, target_id);
-    } catch{
+    } catch(err){
+        console.error(err);
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
     const components = [
@@ -166,7 +173,8 @@ async function handleSetProfileCommand(res, callingMember, target_id){
           return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
         await insertMemberCommandState(callingMember.user.id, target_id);
-    } catch{
+    } catch(err){
+        console.log(err);
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
     const professionOptions = PROFESSION_ROLES.map((role) => {
@@ -190,13 +198,13 @@ async function handleSetProfileCommand(res, callingMember, target_id){
                   type: 3,
                   custom_id: profile_name_dropdown,
                   options,
-                  placeholder: "Choose an Achievement",
+                  placeholder: "Choose a Profile",
                   min_values: 1,
                   max_values: 1
       }]
       },
   ];
-    return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
+    return await respondWithComponentMessage(res, 'Which profile would you like to assign?', {onlyShowToCreator: true,components})
 }
 async function handleAchievementsCommand(res, commandOptions){
   let message = '';
@@ -227,7 +235,8 @@ async function handleProfileUpdate(res, member, guild_id, role){
     try{
       await setUsersActiveRole(member, guild_id, role);
       return respondWithUpdateMessage(res, 'Successfully updated your active role!');
-    } catch {
+    } catch(err){
+        console.log(err);
       return respondWithUpdateMessage(res, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
     }
 }
@@ -263,7 +272,8 @@ async function respondWithAchievementChoices(res, userId, guildId){
             },
         ];
         return respondWithUpdateMessage(res, message, { components});
-    } catch{
+    } catch(err){
+        console.log(err);
       return respondWithUpdateMessage(res, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
     }
 }
