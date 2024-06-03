@@ -71,8 +71,8 @@ async function removeFromCollection(collection, query){
         await client.connect();
         const db = client.db("BongoBot");
         const col = db.collection(collection);
-        const deletionResponse = await col.deleteOne(query);
-        return await deletionResponse.acknowledged;
+        const deletionResponse = await col.deleteMany(query);
+        return await deletionResponse.deletedCount;
     } catch {
         console.error(`Issue deleting from ${collection}`);
     }
@@ -106,34 +106,34 @@ export async function getMemberRole(userId, guildId){
     return await getFromCollection("MemberRoles", query);
 }
 export async function insertMemberAchievement(userId, guildId, achievementId){
-    const doc = {userId, guildId, achievementId}
+    const doc = {userId, guildId, achievementId};
     const result = await insertOne("MemberAchievement", doc);
-    console.log(
-    `A MemberAchievement {${doc}} was inserted with document _id: ${result.insertedId}`,
-    );
+    console.log('A MemberAchievement was inserted: ', doc);
     return result.insertedId;
 }
 export async function getAllMemberAchievements(userId, guildId){
-    const query = {userId, guildId}
+    const query = {userId, guildId};
     return await getFromCollection("MemberAchievement", query);
 }
 export async function getMemberAchievement(userId, guildId, achievementId){
-    const query = {userId, guildId, achievementId}
+    const query = {userId, guildId, achievementId};
     return await getFromCollection("MemberAchievement", query);
 }
 export async function insertMemberCommandState(userId, targetId){
-    const doc = {userId, targetId}
+    const doc = {userId, targetId};
     const result = await insertOne("MemberCommandState", doc);
     console.log('A MemberCommandState ', doc, 'was inserted with document _id: ', result.insertedId);
     return result.insertedId;
 }
 export async function getMemberCommandState(userId){
-    const query = {userId}
+    const query = {userId};
     return await getFromCollection("MemberCommandState", query);
 }
 export async function removeMemberCommandState(userId){
-    const query = {userId}
-    return await removeFromCollection("MemberCommandState", query);
+    const query = {userId};
+    const response = await removeFromCollection("MemberCommandState", query);
+    console.log('deleted ', response, ' state(s) from MemberCommandState');
+    return response;
 }
 
 await ping();

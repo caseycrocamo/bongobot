@@ -18,5 +18,6 @@ export const guardianenjoyer = 'guardianenjoyer';
 //achievement roles
 export const wildcard = 'wildcard';
 export const reigningjpchamp = 'reigningjpchamp';
+export const heroicjpracer = 'heroicjpracer';
 export const grimreaper = 'grimreaper';
 export const scourgemd = 'scourgemd';

@@ -5,6 +5,7 @@ import { VerifyDiscordRequest } from './discordclient.js';
 import { achievement_name_dropdown, choose_achievement, choose_profession, profile_name_dropdown, remove_all } from './customids.js';
 import { handleTimestampCommand } from './timezones/timezonehandler.js'; 
 import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices  } from './roles/profilehandler.js';
+import { ackInteraction } from './discordresponsehelper.js';
 
 // Create an express app
 const app = express();

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { GetMember } from '../discordclient.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from '../roles/roles.js';
-import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, scourgemd, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, scourgemd, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
 import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
 import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
@@ -115,10 +115,7 @@ export function handleProfileCommand(res){
 export async function handleSetProfile(res, callingMember, guild_id, role){
     try{
         const grantAchievementState = await getMemberCommandState(callingMember.user.id);
-        console.log('found state object: ', grantAchievementState);
-        //handle null state
-        await removeMemberCommandState(callingMember.user.id)
-        const targetId = grantAchievementState[0].targetId;
+        const targetId = getTargetIdFromState(grantAchievementState, callingMember.user.id);
         const member = await GetMember(guild_id, targetId);
         console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
@@ -131,18 +128,18 @@ export async function handleSetProfile(res, callingMember, guild_id, role){
 }
 export async function handleAssignAchievement(res, callingMember, guild_id, achievement_id){
     try{
-        const grantAchievementState = await getMemberCommandState(callingMember.user.id);
-        await removeMemberCommandState(callingMember.user.id)
-        const existingMemberAchievement = await getMemberAchievement(grantAchievementState[0].targetId, guild_id, achievement_id);
-        if(existingMemberAchievement[0]){
-            console.log('User (id: ', grantAchievementState[0].targetId, ') already has the achievement ', achievement_id, '. Exiting early.');
+        const grantAchievementStates = await getMemberCommandState(callingMember.user.id);
+        const targetUserId = await getTargetIdFromState(grantAchievementStates, callingMember.user.id);
+        const existingMemberAchievement = await getMemberAchievement(targetUserId, guild_id, achievement_id);
+        if(existingMemberAchievement !== undefined && existingMemberAchievement[0]){
+            console.log('User (id: ', targetUserId, ') already has the achievement ', achievement_id, '. Exiting early.');
             return respondWithUpdateMessage(res, 'User already has the assigned achievement.')
         }
-        await insertMemberAchievement(grantAchievementState[0].targetId, guild_id, achievement_id);
+        await insertMemberAchievement(targetUserId, guild_id, achievement_id);
         return respondWithUpdateMessage(res, 'Achievement assigned successfully.');
     } catch(err){
         console.error(err);
-        respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
+        return respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
     }
 }
 export async function handleRemoveRole(res, member, guild_id){
@@ -179,8 +176,8 @@ export async function respondWithAchievementChoices(res, userId, guildId){
                 custom_id: wildcard
             },
         ];
-        if(userAchievements){
-            console.log('found user achievements. Adding them to the achievement choices.');
+        if(userAchievements && userAchievements.length > 0){
+            console.log('found user achievements. Adding them to the achievement choices. Achievements: ', userAchievements);
             userAchievements.map((achievement) => achievementChoices.push({
                 type: 2,
                 label: achievementRolesMap[achievement],
@@ -209,41 +206,46 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
           return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
         await insertMemberCommandState(callingMember.user.id, target_id);
+        const components = [
+            {
+                type: 1,
+                components: [
+                    {
+                    type: 3,
+                        custom_id: achievement_name_dropdown,
+                        options:[
+                            {
+                                label: "Reigning Jumping Puzzle Champion",
+                                value: reigningjpchamp,
+                                description: "Winner of the guild jumping puzzle race!",
+                            },
+                            {
+                                label: "Heroic Jumping Puzzle Racer",
+                                value: heroicjpracer,
+                                description: "Won 2nd or 3rd in the guild jumping puzzle race!",
+                            },
+                            {
+                                label: "Grim Reaper",
+                                value: grimreaper,
+                                description: "Has achieved 25k DPS on a raid / strike boss as a Reaper.",
+                            },
+                            {
+                                label: "Scourge MD",
+                                value: scourgemd,
+                                description: "resurrected 30 players in a single fight.",
+                            },
+                        ],
+                        placeholder: "Choose an Achievement",
+                        min_values: 1,
+                        max_values: 1
+            }]
+            },
+        ];
+        return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
     } catch(err){
         console.error(err);
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
-    const components = [
-        {
-            type: 1,
-            components: [
-                {
-                type: 3,
-                    custom_id: achievement_name_dropdown,
-                    options:[
-                        {
-                            label: "Reigning Jumping Puzzle Champion",
-                            value: reigningjpchamp,
-                            description: "Winner of the guild jumping puzzle race!",
-                        },
-                        {
-                            label: "Grim Reaper",
-                            value: grimreaper,
-                            description: "Has achieved 25k DPS on a raid / strike boss as a Reaper.",
-                        },
-                        {
-                            label: "Scourge MD",
-                            value: scourgemd,
-                            description: "resurrected 30 players in a single fight.",
-                        },
-                    ],
-                    placeholder: "Choose an Achievement",
-                    min_values: 1,
-                    max_values: 1
-        }]
-        },
-    ];
-    return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
 }
 export async function handleSetProfileCommand(res, callingMember, target_id){
     try {
@@ -300,4 +302,14 @@ export async function handleAchievementsCommand(res, commandOptions){
         break;
   }
   return respondWithComponentMessage(res, message, {onlyShowToCreator: true});
+}
+async function getTargetIdFromState(state, userId){
+    console.log('state for userId: ',state);
+    const latestState = state.pop();
+    if(latestState === undefined){
+        console.error('no state found for user: ', userId, ' when attempting to assign achievement');
+        return respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.');
+    }
+    await removeMemberCommandState(userId)
+    return latestState.targetId;
 }
