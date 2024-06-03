@@ -29,8 +29,8 @@ export const SCOURGE_MD = {
     mentionable: true
 } 
 export const ACHIEVEMENT_ROLES = [
-    // WILDCARD,
-    // REIGNING_JP_CHAMP,
-    // GRIM_REAPER,
+    WILDCARD,
+    REIGNING_JP_CHAMP,
+    GRIM_REAPER,
     SCOURGE_MD
 ]
