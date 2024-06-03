@@ -165,7 +165,8 @@ export async function handleProfileUpdate(res, member, guild_id, role){
 export async function respondWithAchievementChoices(res, userId, guildId){
     try{
         const achievementRolesMap = {};
-        ACHIEVEMENT_ROLES.map((achievementRole) => achievementRolesMap[achievementRole.custom_id] = achievementRole.name);
+        ACHIEVEMENT_ROLES.map((achievementRole) => achievementRolesMap[achievementRole.custom_id] = achievementRole.short_name);
+        console.log(achievementRolesMap);
         const userAchievements = await getUsersAchievements(userId, guildId);
         const message = 'Which achievement would you like to show off? It will set the color of your name and your badge in this server.'
         const achievementChoices = [
@@ -183,8 +184,9 @@ export async function respondWithAchievementChoices(res, userId, guildId){
                 label: achievementRolesMap[achievement],
                 style: 1,
                 custom_id: achievement
-            }))
+            }));
         }
+        console.log(achievementChoices);
 
         const components = [
             {
