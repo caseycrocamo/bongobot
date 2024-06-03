@@ -120,7 +120,6 @@ export async function handleSetProfile(res, callingMember, guild_id, role){
         await removeMemberCommandState(callingMember.user.id)
         const targetId = grantAchievementState[0].targetId;
         const member = await GetMember(guild_id, targetId);
-        console.log(member);
         console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
         await setUsersActiveRole(member, guild_id, role);
