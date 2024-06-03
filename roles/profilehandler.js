@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { GetMember } from '../discordclient.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from '../roles/roles.js';
-import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, scourgemd, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
 import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
 import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
@@ -206,6 +206,16 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
           return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
         await insertMemberCommandState(callingMember.user.id, target_id);
+        let options = [];
+        ACHIEVEMENT_ROLES.map((achievement) => 
+            options.push(
+            {
+                label: achievement.short_name,
+                value: achievement.custom_id,
+                description: achievement.description
+            })
+        );
+        console.log(options);
         const components = [
             {
                 type: 1,
@@ -213,28 +223,7 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
                     {
                     type: 3,
                         custom_id: achievement_name_dropdown,
-                        options:[
-                            {
-                                label: "Reigning Jumping Puzzle Champion",
-                                value: reigningjpchamp,
-                                description: "Winner of the guild jumping puzzle race!",
-                            },
-                            {
-                                label: "Heroic Jumping Puzzle Racer",
-                                value: heroicjpracer,
-                                description: "Won 2nd or 3rd in the guild jumping puzzle race!",
-                            },
-                            {
-                                label: "Grim Reaper",
-                                value: grimreaper,
-                                description: "Has achieved 25k DPS on a raid / strike boss as a Reaper.",
-                            },
-                            {
-                                label: "Scourge MD",
-                                value: scourgemd,
-                                description: "resurrected 30 players in a single fight.",
-                            },
-                        ],
+                        options,
                         placeholder: "Choose an Achievement",
                         min_values: 1,
                         max_values: 1
