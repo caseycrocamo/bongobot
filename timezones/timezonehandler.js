@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import generateTimestampMessage, { parseTime, convertHoursMinutesToUTC } from './timestamp.js';
 import { parse } from 'date-format-parse';
+import { respondWithComponentMessage } from '../discordresponsehelper.js';
 
 export function handleTimestampCommand(res, commandOptions){
   let message = '';
