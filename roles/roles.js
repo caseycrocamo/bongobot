@@ -1,13 +1,17 @@
 import 'dotenv/config';
 import { GetGuildRoles, InstallGuildRole, ModifyGuildRolePosition, ModifyMember } from "../discordclient.js";
 import { getMemberRole, insertMemberRoleAssignment, removeMemberRole, updateMemberRoleAssignment } from '../mongo.js';
-import CustomIdToRoleNameMap from './roleutils.js';
+import CustomIdToRoleNameMap, { getRoleIdByName } from './roleutils.js';
 
 
 export async function AddGuildRoles(roleList){
+    const currentGuildRoles = await GetGuildRoles(process.env.GUILD_ID);
+    const newRoles = roleList.filter((role) => currentGuildRoles.findIndex((currentRole) => currentRole.name == role.name) === -1);
+    const newRoleNames = newRoles.map((role) => role.name);
+    console.log('adding new roles to guild id:', process.env.GUILD_ID, newRoleNames);
     let roleIds = [];
-    roleList.map(async (role) => roleIds.push((await AddRole(role)).id));
-    setTimeout(async () => ReorderRoles(roleIds), 2000);
+    newRoles.map(async (role) => roleIds.push((await AddRole(role)).id));
+    // setTimeout(async () => ReorderRoles(roleIds), 2000);
 }
 async function AddRole(role){
     return await InstallGuildRole(process.env.GUILD_ID, role);
@@ -47,7 +51,7 @@ export default async function setUsersActiveRole(member, guildId, customId){
     let roleName = CustomIdToRoleNameMap[customId];
     console.log(`setting user ${member.user.id} active role to "${roleName}" in guild ${guildId}`);
     const allRoles = await GetGuildRoles(guildId);
-    const newRoleId = allRoles.find((role) => role.name.toLowerCase().replace(/\s+/g, '') === roleName.toLowerCase().replace(/\s+/g, '')).id;
+    const newRoleId = getRoleIdByName(allRoles, roleName);
     const currentMemberRole = (await getMemberRole(member.user.id, guildId))[0];
     let roles = [...member.roles];
     if(currentMemberRole){

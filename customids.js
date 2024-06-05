@@ -5,6 +5,7 @@ export const profile_name_dropdown = 'profile_name';
 export const remove_all = 'remove_all';
 export const choose_profession = 'choose_profession';
 export const choose_achievement = 'choose_achievement';
+export const choose_crafting = 'choose_crafting';
 //profession roles
 export const elementalistenjoyer = 'elementalistenjoyer';
 export const mesmerenjoyer = 'mesmerenjoyer';
@@ -15,6 +16,8 @@ export const engineerenjoyer = 'engineerenjoyer';
 export const revenantenjoyer = 'revenantenjoyer';
 export const warriorenjoyer = 'warriorenjoyer';
 export const guardianenjoyer = 'guardianenjoyer';
+//crafting roles
+export const masterscribe = 'masterscribe';
 //achievement roles
 export const wildcard = 'wildcard';
 export const reigningjpchamp = 'reigningjpchamp';
@@ -26,3 +29,4 @@ export const sleepparalysisdemon = 'sleepparalysisdemon';
 export const oneshotonekill = 'oneshotonekill';
 export const bladesinger = 'bladesinger';
 export const masteroftime = 'masteroftime';
+export const coursebuilder = 'coursebuilder';

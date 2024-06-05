@@ -1,13 +1,32 @@
 import 'dotenv/config';
 import { GetMember } from '../discordclient.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from '../roles/roles.js';
-import { achievement_name_dropdown, choose_achievement, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
 import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
 import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
 import { memberCanManageRoles } from '../member.js';
 import { PROFESSION_ROLES } from '../roles/professionRoles.js';
 import { respondWithComponentMessage, respondWithUpdateMessage, respondWithCommandNotImplemented } from '../discordresponsehelper.js';
+import { CRAFTING_ROLES } from './craftingRoles.js';
+export function respondWithCraftingChoices(res){
+  const message = 'Show off your crafting prowess with a shiny new name color and crafting icon! Pick a discipline:';
+  const options = CRAFTING_ROLES.map((role) => {
+    return {
+        type: 2,
+        label: role.short_name,
+        style: 1,
+        custom_id: role.custom_id
+    }
+  });
+  const components = [
+    {
+      type: 1,
+      components: options
+    },
+  ];
+  return respondWithUpdateMessage(res, message, {components, onlyShowToCreator: true});
+}
 export function respondWithProfessionChoices(res){
   const message = 'Show off your favorite profession with a shiny new name color and profession icon! Pick a profession:';
   const components = [
@@ -103,6 +122,17 @@ export function handleProfileCommand(res){
           },
           {
               type: 2,
+              label: "Choose a Crafting Discipline",
+              style: 1,
+              custom_id: choose_crafting
+          },
+      ]
+    },
+    {
+      type: 1,
+      components: [
+          {
+              type: 2,
               label: "Show off Achievements",
               style: 1,
               custom_id: choose_achievement
@@ -115,7 +145,7 @@ export function handleProfileCommand(res){
 export async function handleSetProfile(res, callingMember, guild_id, role){
     try{
         const grantAchievementState = await getMemberCommandState(callingMember.user.id);
-        const targetId = getTargetIdFromState(grantAchievementState, callingMember.user.id);
+        const targetId = await getTargetIdFromState(grantAchievementState, callingMember.user.id);
         const member = await GetMember(guild_id, targetId);
         console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
@@ -169,7 +199,7 @@ export async function respondWithAchievementChoices(res, userId, guildId){
         console.log(achievementRolesMap);
         const userAchievements = await getUsersAchievements(userId, guildId);
         const message = 'Which achievement would you like to show off? It will set the color of your name and your badge in this server.'
-        const achievementChoices = [
+        let achievementChoices = [
             {
                 type: 2,
                 label: "Wildcard",
@@ -186,8 +216,7 @@ export async function respondWithAchievementChoices(res, userId, guildId){
                 custom_id: achievement
             }));
         }
-        console.log(achievementChoices);
-
+        achievementChoices.sort((a, b) => a.label.localeCompare(b.label));
         const components = [
             {
             type: 1,
@@ -217,7 +246,7 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
                 description: achievement.description
             })
         );
-        console.log(options);
+        options.sort((a, b) => a.label.localeCompare(b.label));
         const components = [
             {
                 type: 1,
@@ -255,14 +284,21 @@ export async function handleSetProfileCommand(res, callingMember, target_id){
                   label: role.name,
                   value: role.custom_id
                 };
-    })
+    });
     const achievementOptions = ACHIEVEMENT_ROLES.map((role) => {
         return {
                   label: role.name,
                   value: role.custom_id
                 };
-    })
-    const options = [...achievementOptions, ...professionOptions];
+    });
+    const craftingOptions = CRAFTING_ROLES.map((role) => {
+        return {
+                  label: role.name,
+                  value: role.custom_id
+                };
+    });
+    const options = [...achievementOptions, ...professionOptions, ...craftingOptions];
+    options.sort((a, b) => a.label.localeCompare(b.label));
     const components = [
         {
             type: 1,
@@ -278,21 +314,6 @@ export async function handleSetProfileCommand(res, callingMember, target_id){
       },
   ];
     return await respondWithComponentMessage(res, 'Which profile would you like to assign?', {onlyShowToCreator: true,components})
-}
-export async function handleAchievementsCommand(res, commandOptions){
-  let message = '';
-  const {name, options} = commandOptions[0];
-  return handleCommandNotImplemented(res);
-  switch(name){
-    case 'view':
-        break;
-    case 'achieve':
-        break;
-    default:
-        message = 'Oops, something went wrong. Please try again later.'
-        break;
-  }
-  return respondWithComponentMessage(res, message, {onlyShowToCreator: true});
 }
 async function getTargetIdFromState(state, userId){
     console.log('state for userId: ',state);

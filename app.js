@@ -2,10 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import { InteractionType } from 'discord-interactions';
 import { VerifyDiscordRequest } from './discordclient.js';
-import { achievement_name_dropdown, choose_achievement, choose_profession, profile_name_dropdown, remove_all } from './customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, profile_name_dropdown, remove_all } from './customids.js';
 import { handleTimestampCommand } from './timezones/timezonehandler.js'; 
-import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices  } from './roles/profilehandler.js';
+import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices  } from './roles/profilehandler.js';
 import { ackInteraction } from './discordresponsehelper.js';
+import { handleAchievementsCommand } from './roles/achievementHandler.js';
 
 // Create an express app
 const app = express();
@@ -45,7 +46,7 @@ app.post('/interactions', async function (req, res) {
           return handleProfileCommand(res);
         case 'achievements':
           console.log('matched on achievements command.')
-          return handleAchievementsCommand(res, options);
+          return await handleAchievementsCommand(res, member.user.id, guild_id, options);
         case 'Grant Achievement':
           console.log('matched on grant achievmement command.')
           return handleGrantAchievementCommand(res, member, target_id);
@@ -65,6 +66,8 @@ app.post('/interactions', async function (req, res) {
         return respondWithAchievementChoices(res, member.user.id, guild_id);
       case choose_profession:
         return respondWithProfessionChoices(res);
+      case choose_crafting:
+        return respondWithCraftingChoices(res);
       case achievement_name_dropdown:
         return await handleAssignAchievement(res, member, guild_id, data.values[0]);
       case profile_name_dropdown:
