@@ -1,4 +1,4 @@
-import { parseTime } from '../timestamp.js';
+import { parseTime } from './timestamp.js';
 describe("parseTime", function() {
     const testCases = [
         {
