@@ -30,3 +30,4 @@ export const oneshotonekill = 'oneshotonekill';
 export const bladesinger = 'bladesinger';
 export const masteroftime = 'masteroftime';
 export const coursebuilder = 'coursebuilder';
+export const pinatabashpro = 'pinatabashpro';
