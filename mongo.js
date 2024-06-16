@@ -135,5 +135,15 @@ export async function removeMemberCommandState(userId){
     console.log('deleted ', response, ' state(s) from MemberCommandState');
     return response;
 }
+export async function insertMemberApiKey(userId, apiKey){
+    const doc = {userId, apiKey};
+    const result = await insertOne("MemberApiKey", doc);
+    console.log('A MemberApiKey ', doc, 'was inserted with document _id: ', result.insertedId);
+    return result.insertedId;
+}
+export async function getMemberApiKey(userId){
+    const query = {userId};
+    return await getFromCollection("MemberApiKey", query);
+}
 
 await ping();
