@@ -145,5 +145,16 @@ export async function getMemberApiKey(userId){
     const query = {userId};
     return await getFromCollection("MemberApiKey", query);
 }
+export async function updateMemberApiKey(userId, apiKey){
+    const filter = { userId };
+    const updateDocument = {
+        $set: {
+            apiKey
+        }
+    }
+    const result = await updateOne("MemberApiKey", filter, updateDocument);
+    console.log('A MemberApiKey ',filter, `was updated`);
+    return result;
+}
 
 await ping();
