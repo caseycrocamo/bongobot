@@ -38,7 +38,7 @@ async function handleAchieve(res, userId, guildId, achievement, proof){
         const userHasAchievement = achievements.findIndex(achievement => achievement === customId) !== -1;
         console.log('user', userId, 'is achieving', customId);
         if(userHasAchievement){
-            return respondWithComponentMessage(res, `You have already achieved ${roleName}\n Use the `/profile` command to show off your favorite achievement with a matching name color and badge`, {onlyShowToCreator: true});
+            return respondWithComponentMessage(res, `You have already achieved ${roleName}\n Use the \`/profile\` command to show off your favorite achievement with a matching name color and badge`, {onlyShowToCreator: true});
         }
         await insertMemberAchievement(userId, guildId, customId);
         let message = `<@!${userId}> has earned <@&${achievement}>`;
