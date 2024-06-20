@@ -1,7 +1,7 @@
 import { GetGuildRoles } from "../discordclient.js";
 import { respondWithCommandNotImplemented, respondWithComponentMessage } from "../discordresponsehelper.js";
 import { insertMemberAchievement } from "../mongo.js";
-import { getUsersAchievements } from "./achievements.js";
+import { getUsersAchievements, isCustomIdAchievementRole } from "./achievements.js";
 import { CustomIdToRoleNameMap, RoleNameToCustomIdMap, getRoleIdByName, getRoleNameById } from "./roleutils.js";
 
 async function handleViewAchievements(res, userId, guildId){
@@ -31,6 +31,10 @@ async function handleAchieve(res, userId, guildId, achievement, proof){
         const roles = await GetGuildRoles(guildId);
         const roleName = getRoleNameById(roles, achievement);
         const customId = RoleNameToCustomIdMap[roleName];
+        if(!isCustomIdAchievementRole(customId)){
+            console.log(roleName, 'does not correspond to an achievement role. returning a message to the user', userId);
+            return respondWithComponentMessage(res, `${roleName} is not an achievement, please choose a different role.`, {onlyShowToCreator: true});
+        }
         const userHasAchievement = achievements.findIndex(achievement => achievement === customId) !== -1;
         console.log('user', userId, 'is achieving', customId);
         if(userHasAchievement){
