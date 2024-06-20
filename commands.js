@@ -22,7 +22,7 @@ const ACHIEVEMENT_COMMAND = {
             type: 1,
             options: [
                 {
-                    type: 3,
+                    type: 8,
                     name: 'achievement',
                     description:"name of the achievement to complete",
                     required: true
@@ -30,8 +30,8 @@ const ACHIEVEMENT_COMMAND = {
                 {
                     type: 3,
                     name: 'proof',
-                    description:"proof of completion - dps logs, screenshot, etc.",
-                    required: true
+                    description:"proof of completion - dps logs, link to a screenshot, etc.",
+                    required: false
                 }
             ]
         }

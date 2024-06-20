@@ -1,4 +1,4 @@
-import { getAllMemberAchievements } from "../mongo.js";
+import { getAllMemberAchievements, insertMemberAchievement } from "../mongo.js";
 import 'dotenv/config';
 export async function getUsersAchievements(userId, guildId){
     const userAchievementDocuments = await getAllMemberAchievements(userId, guildId);
