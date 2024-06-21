@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { InteractionType } from 'discord-interactions';
 import { VerifyDiscordRequest } from './discordclient.js';
-import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, profile_name_dropdown, remove_all } from './customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, profile_choice_dropdown, profile_name_dropdown, remove_all } from './customids.js';
 import { handleTimestampCommand } from './timezones/timezonehandler.js'; 
 import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices  } from './roles/profilehandler.js';
 import { ackInteraction } from './discordresponsehelper.js';
@@ -72,6 +72,8 @@ app.post('/interactions', async function (req, res) {
         return await handleAssignAchievement(res, member, guild_id, data.values[0]);
       case profile_name_dropdown:
         return await handleSetProfile(res, member, guild_id, data.values[0]);
+      case profile_choice_dropdown:
+        return await handleProfileUpdate(res, member, guild_id, data.values[0]);
       case remove_all:
         return await handleRemoveRole(res, member, guild_id);
       default: 

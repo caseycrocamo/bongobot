@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { GetMember } from '../discordclient.js';
 import setUsersActiveRole, { removeUsersCurrentRole } from '../roles/roles.js';
-import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
+import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_choice_dropdown, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
 import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
 import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
@@ -196,31 +196,41 @@ export async function respondWithAchievementChoices(res, userId, guildId){
     try{
         const achievementRolesMap = {};
         ACHIEVEMENT_ROLES.map((achievementRole) => achievementRolesMap[achievementRole.custom_id] = achievementRole.short_name);
-        console.log(achievementRolesMap);
         const userAchievements = await getUsersAchievements(userId, guildId);
         const message = 'Which achievement would you like to show off? It will set the color of your name and your badge in this server.'
-        let achievementChoices = [
+        let options = [
             {
-                type: 2,
-                label: "Wildcard",
-                style: 1,
-                custom_id: wildcard
+                label: "Wild Card",
+                value: wildcard,
+                description: "Has every profession at 80 and a new main every week."
             },
         ];
         if(userAchievements && userAchievements.length > 0){
             console.log('found user achievements. Adding them to the achievement choices. Achievements: ', userAchievements);
-            userAchievements.map((achievement) => achievementChoices.push({
-                type: 2,
-                label: achievementRolesMap[achievement],
-                style: 1,
-                custom_id: achievement
-            }));
+            userAchievements.map((customId) => 
+            {
+                const achievement = ACHIEVEMENT_ROLES.find(role => role.custom_id === customId);
+                options.push(
+                {
+                    label: achievement.short_name,
+                    value: achievement.custom_id,
+                    description: achievement.description
+                })
+            });
         }
-        achievementChoices.sort((a, b) => a.label.localeCompare(b.label));
+        options.sort((a, b) => a.label.localeCompare(b.label));
         const components = [
             {
-            type: 1,
-            components: achievementChoices
+                type: 1,
+                components: [
+                    {
+                    type: 3,
+                        custom_id: profile_choice_dropdown,
+                        options,
+                        placeholder: "Choose an Achievement",
+                        min_values: 1,
+                        max_values: 1
+            }]
             },
         ];
         return respondWithUpdateMessage(res, message, { components});
