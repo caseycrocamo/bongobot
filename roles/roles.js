@@ -11,14 +11,13 @@ export async function AddGuildRoles(roleList){
     console.log('adding new roles to guild id:', process.env.GUILD_ID, newRoleNames);
     let roleIds = [];
     newRoles.map(async (role) => roleIds.push((await AddRole(role)).id));
-    // setTimeout(async () => ReorderRoles(roleIds), 2000);
+    setTimeout(async () => ReorderRoles(roleIds, currentGuildRoles), 2000);
 }
 async function AddRole(role){
     return await InstallGuildRole(process.env.GUILD_ID, role);
 }
-async function ReorderRoles(roleIds){
-    const allRoles = await GetGuildRoles(process.env.GUILD_ID);
-    const highestPosition = allRoles.reduce((accumulator, currentValue) => {
+async function ReorderRoles(roleIds, currentRoles){
+    const highestPosition = currentRoles.reduce((accumulator, currentValue) => {
         if(currentValue.position > accumulator){
             accumulator = currentValue.position;
         }

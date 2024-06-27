@@ -40,29 +40,43 @@ export async function DiscordRequest(endpoint, options) {
 }
 
 export async function InstallGlobalCommands(appId, commands) {
-  // API endpoint to overwrite global commands
   const endpoint = `applications/${appId}/commands`;
 
   try {
-    // This is calling the bulk overwrite endpoint: https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
     await DiscordRequest(endpoint, { method: 'PUT', body: commands });
   } catch (err) {
     console.error(err);
   }
 }
 export async function InstallGuildCommands(appId, guildId, commands) {
-  // API endpoint to overwrite guild commands
   const guildEndpoint = `applications/${appId}/guilds/${guildId}/commands`;
 
   try {
-    // This is calling the bulk overwrite endpoint: https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
     await DiscordRequest(guildEndpoint, { method: 'PUT', body: commands });
   } catch (err) {
     console.error(err);
   }
 }
+export async function GetAllGuildCommands(appId, guildId) {
+  const guildEndpoint = `applications/${appId}/guilds/${guildId}/commands`;
+
+  try {
+    const response = await DiscordRequest(guildEndpoint, { method: 'GET' });
+    return await response.json();
+  } catch (err) {
+    console.error(err);
+  }
+}
+export async function DeleteGuildCommand(appId, guildId, commandId) {
+  const guildEndpoint = `applications/${appId}/guilds/${guildId}/commands/${commandId}`;
+
+  try {
+    await DiscordRequest(guildEndpoint, { method: 'DELETE' });
+  } catch (err) {
+    console.error(err);
+  }
+}
 export async function InstallGuildRole(guildId, role) {
-  // API endpoint to add guild role
   const endpoint = `/guilds/${guildId}/roles`;
 
   try {
@@ -73,7 +87,6 @@ export async function InstallGuildRole(guildId, role) {
   }
 }
 export async function ModifyGuildRolePosition(guildId, role) {
-  // API endpoint to add guild role
   const endpoint = `/guilds/${guildId}/roles`;
 
   try {
@@ -84,7 +97,6 @@ export async function ModifyGuildRolePosition(guildId, role) {
   }
 }
 export async function GetGuildRoles(guildId) {
-  // API endpoint to add guild role
   const endpoint = `/guilds/${guildId}/roles`;
 
   try {
@@ -96,7 +108,6 @@ export async function GetGuildRoles(guildId) {
   }
 }
 export async function ModifyMember(guildId, userId, member) {
-  // API endpoint to add guild role
   const endpoint = `/guilds/${guildId}/members/${userId}`;
 
   try {
@@ -107,7 +118,6 @@ export async function ModifyMember(guildId, userId, member) {
   }
 }
 export async function GetMember(guildId, memberId) {
-  // API endpoint to add guild role
   const endpoint = `/guilds/${guildId}/members/${memberId}`;
 
   try {

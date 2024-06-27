@@ -1,12 +1,9 @@
-import 'dotenv/config';
-import { InstallGlobalCommands, InstallGuildCommands } from './discordclient.js';
-
-const PROFILE_COMMAND = {
+export const PROFILE_COMMAND = {
     name: 'profile',
     description: 'customize your appearance in this server with a name color and badge',
     type: 1
 };
-const ACHIEVEMENT_COMMAND = {
+export const ACHIEVEMENT_COMMAND = {
     name: 'achievements',
     description: 'view achievements and unlock titles for your profile',
     type: 1,
@@ -38,7 +35,7 @@ const ACHIEVEMENT_COMMAND = {
 
     ]
 };
-const TIMESTAMP_COMMAND = {
+export const TIMESTAMP_COMMAND = {
     name: 'timestamp',
     description: 'create an organic, free range timestamp that discord loves to maunch',
     type: 1,
@@ -129,16 +126,13 @@ const TIMESTAMP_COMMAND = {
         },
     ]
 };
-const GRANT_MEMBER_ACHIEVEMENT_COMMAND = {
+export const GRANT_MEMBER_ACHIEVEMENT_COMMAND = {
     name: 'Grant Achievement',
     type: 2
 }
-const SET_MEMBER_PROFILE_COMMAND = {
+export const SET_MEMBER_PROFILE_COMMAND = {
     name: 'Set Profile',
     type: 2
 }
 
 export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND, GRANT_MEMBER_ACHIEVEMENT_COMMAND, SET_MEMBER_PROFILE_COMMAND];
-
-InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
-InstallGuildCommands(process.env.APP_ID, process.env.GUILD_ID, ALL_COMMANDS);

@@ -9,7 +9,9 @@
     },
     "scripts": {
         "start": "node app.js",
-        "register-commands": "node commands.js",
+        "register-guild-commands": "node ./commands/installguild.js",
+        "register-global-commands": "node ./commands/installglobal.js",
+        "remove-guild-commands": "node ./commands/removeguild.js",
         "register-roles": "node ./roles/installroles.js",
         "mongo": "node mongo.js",
         "dev": "nodemon app.js",

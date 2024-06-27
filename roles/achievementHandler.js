@@ -8,7 +8,7 @@ async function handleViewAchievements(res, userId, guildId){
     try{
         const achievements = await getUsersAchievements(userId, guildId);
         const roles = await GetGuildRoles(guildId);
-        let message = '**Earned Achievement Roles**';
+        let message = '**Achievement Roles**';
         if(achievements === undefined || achievements.length === 0){
             message.concat('\nYou don\'t have any achievements. Use `/achievement achieve` to unlock an achievement badge and name color for your profile!');
         }
