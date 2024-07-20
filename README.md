@@ -23,7 +23,7 @@ The timestamp commands allow you to create a timestamp that Discord knows how to
 `timezone`: Select YOUR timezone. 
 
 `type`: Select the format you want the timestamp displayed in. `Relative` is similar to the previous command, the rest are pretty self explanatory. 
-**Profile Command**
+## Profile Command
 The profile command allows you to manipulate your discord server profile. BongoBot profiles change your name color and icon. They are a fun way to show off your achievements, class preferences, etc.
 Activate this command by typing `/profile`. It will respond with a message that only you can see so do not worry about which channel you use the command in.
 ### Actions
