@@ -3,6 +3,11 @@ export const PROFILE_COMMAND = {
     description: 'customize your appearance in this server with a name color and badge',
     type: 1
 };
+export const HELP_COMMAND = {
+    name: 'help',
+    description: 'get info on how to use the commands',
+    type: 1
+};
 export const ACHIEVEMENT_COMMAND = {
     name: 'achievements',
     description: 'view achievements and unlock titles for your profile',
@@ -135,4 +140,4 @@ export const SET_MEMBER_PROFILE_COMMAND = {
     type: 2
 }
 
-export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND, GRANT_MEMBER_ACHIEVEMENT_COMMAND, SET_MEMBER_PROFILE_COMMAND];
+export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND, GRANT_MEMBER_ACHIEVEMENT_COMMAND, SET_MEMBER_PROFILE_COMMAND, HELP_COMMAND];

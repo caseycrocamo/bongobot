@@ -11,21 +11,25 @@ export function respondWithModal(res, message, options = {}){
         type: InteractionResponseType.MODAL,
         data: {
             content: message,
-            components,
+            components: components ?? [],
             flags: generateFlags(onlyShowToCreator)
         },
     });
 }
 export function respondWithComponentMessage(res, message, options = {}){
   const {onlyShowToCreator, components} = options;
+  try{
     return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
             content: message,
-            components,
+            components: components ?? [],
             flags: generateFlags(onlyShowToCreator)
         },
     });
+  } catch (err){
+    console.error(err);
+  }
 }
 export function respondWithUpdateMessage(res, message, options = {}) {
   const {onlyShowToCreator, components} = options;

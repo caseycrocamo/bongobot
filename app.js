@@ -4,7 +4,7 @@ import { InteractionType } from 'discord-interactions';
 import { VerifyDiscordRequest } from './discordclient.js';
 import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, profile_choice_dropdown, profile_name_dropdown, remove_all } from './customids.js';
 import { handleTimestampCommand } from './timezones/timezonehandler.js'; 
-import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices  } from './roles/profilehandler.js';
+import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices, handleHelpCommand  } from './roles/profilehandler.js';
 import { ackInteraction } from './discordresponsehelper.js';
 import { handleAchievementsCommand } from './roles/achievementHandler.js';
 
@@ -44,6 +44,9 @@ app.post('/interactions', async function (req, res) {
         case 'profile':
           console.log('matched on profile command. responding with a message to allow the user to modify their active role.')
           return handleProfileCommand(res);
+        case 'help':
+          console.log('matched on help command. responding with a help message to only the user.')
+          return handleHelpCommand(res);
         case 'achievements':
           console.log('matched on achievements command.')
           return await handleAchievementsCommand(res, member.user.id, guild_id, options);
