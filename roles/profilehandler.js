@@ -103,7 +103,7 @@ export function respondWithProfessionChoices(res){
   return respondWithUpdateMessage(res, message, {components, onlyShowToCreator: true});
 }
 export function handleHelpCommand(res){
-    const message = `Discord messages have a limit of 2000 characters. See the full documentation on the readme: `;
+    const message = `Discord messages have a limit of 2000 characters. See the full documentation on the readme: https://github.com/caseycrocamo/bongobot/blob/main/README.md`;
   return respondWithComponentMessage(res, message, {onlyShowToCreator: true});
 }
 export function handleProfileCommand(res){
