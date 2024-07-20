@@ -34,3 +34,6 @@ export const coursebuilder = 'coursebuilder';
 export const pinatabashpro = 'pinatabashpro';
 export const theconcussed = 'theconcussed';
 export const hothothot = 'hothothot';
+export const lookatmyjunk = 'lookatmyjunk';
+export const fromzerotoshiro = 'fromzerotoshiro';
+export const hidps = 'hidps';

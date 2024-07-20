@@ -1,23 +1,28 @@
 import { GetGuildRoles } from "../discordclient.js";
 import { respondWithCommandNotImplemented, respondWithComponentMessage } from "../discordresponsehelper.js";
 import { insertMemberAchievement } from "../mongo.js";
+import { ACHIEVEMENT_ROLES } from "./achievementRoles.js";
 import { getUsersAchievements, isCustomIdAchievementRole } from "./achievements.js";
 import { CustomIdToRoleNameMap, RoleNameToCustomIdMap, getRoleIdByName, getRoleNameById } from "./roleutils.js";
 
 async function handleViewAchievements(res, userId, guildId){
     try{
-        const achievements = await getUsersAchievements(userId, guildId);
+        const userAchievements = await getUsersAchievements(userId, guildId);
         const roles = await GetGuildRoles(guildId);
+        const allAchievements = ACHIEVEMENT_ROLES.map((achievement) => {
+            const userAchievementIndex = userAchievements?.findIndex((customId) => achievement.custom_id === customId);
+            achievement.userEarned =  userAchievementIndex > 0;
+            const roleId = getRoleIdByName(roles, achievement.name);
+            achievement.role_id = roleId;
+            return achievement;
+        });
+        allAchievements.sort((a, b) => b.userEarned - a.userEarned);
         let message = '**Achievement Roles**';
-        if(achievements === undefined || achievements.length === 0){
-            message.concat('\nYou don\'t have any achievements. Use `/achievement achieve` to unlock an achievement badge and name color for your profile!');
-        }
-        else{
-            achievements.map((achievement) =>{
-                const roleName = CustomIdToRoleNameMap[achievement];
-                const roleId = getRoleIdByName(roles, roleName);
-                message = message.concat(`\n <@&${roleId}>`);
-            } );
+        allAchievements.map((achievement) =>{
+            message = message.concat(`\n${achievement.userEarned ? ':white_check_mark:' : ':x:'} <@&${achievement.role_id}>`);
+        } );
+        if(userAchievements === undefined || userAchievements.length === 0){
+            message.concat('\nYou don\'t have any achievements. Use `/achievements achieve` to unlock an achievement badge and name color for your profile!');
         }
         respondWithComponentMessage(res, message, {onlyShowToCreator: true});
     } catch(err){
