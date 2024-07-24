@@ -45,8 +45,9 @@ export function respondWithUpdateMessage(res, message, options = {}) {
 export async function respondWithCommandNotImplemented(res){
   return respondWithComponentMessage(res, 'Command is not implemented yet. Try again later or message @sif', {onlyShowToCreator: true});
 }
-function generateFlags(onlyShowToCreator){
-  if(onlyShowToCreator){
+export function generateFlags(onlyShowToCreator){
+  if(onlyShowToCreator === true){
     return 1 << 6;
   }
+  return null;
 }
