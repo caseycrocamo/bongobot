@@ -37,3 +37,7 @@ export const hothothot = 'hothothot';
 export const lookatmyjunk = 'lookatmyjunk';
 export const fromzerotoshiro = 'fromzerotoshiro';
 export const hidps = 'hidps';
+export const cykablyat = 'cykablyat';
+export const stormbringer = 'stormbringer';
+export const lonewolf = 'lonewolf';
+export const maimkillburn = 'maimkillburn';
