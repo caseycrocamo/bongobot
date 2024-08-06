@@ -13,6 +13,7 @@
         "register-global-commands": "node ./commands/installglobal.js",
         "remove-guild-commands": "node ./commands/removeguild.js",
         "register-roles": "node ./roles/installroles.js",
+        "remove-achievement": "node ./roles/deleteUserAchievement.js",
         "mongo": "node mongo.js",
         "dev": "nodemon app.js",
         "test": "jasmine"

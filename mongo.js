@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(process.env.MONGO_CONNECTION,  {
         serverApi: {
@@ -80,6 +80,22 @@ async function removeFromCollection(collection, query){
         await client.close();
     }
 }
+async function deleteOne(collection, documentId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection(collection);
+        const deletionResponse = await col.deleteOne({
+            "_id": ObjectId(documentId)
+        });
+        return await deletionResponse.deletedCount;
+    } catch {
+        console.error(`Issue deleting from ${collection}`);
+    }
+    finally {
+        await client.close();
+    }
+}
 export async function insertMemberRoleAssignment(userId, guildId, roleId){
     const doc = { userId, guildId, roleId };
     const result = await insertOne("MemberRoles", doc);
@@ -118,6 +134,19 @@ export async function getAllMemberAchievements(userId, guildId){
 export async function getMemberAchievement(userId, guildId, achievementId){
     const query = {userId, guildId, achievementId};
     return await getFromCollection("MemberAchievement", query);
+}
+export async function deleteMemberAchievement(documentId){
+    const query = { "_id": ObjectId(documentId)};
+    const doc = await getFromCollection("MemberAchievement", query);
+    console.log(doc);
+    if(doc.length === 0) {
+        console.error("no document found to delete in MemberAchievement");
+        return null;
+    }
+    else{
+        const deleteCount = await deleteOne(documentId);
+        return deleteCount;
+    }
 }
 export async function insertMemberCommandState(userId, targetId){
     const doc = {userId, targetId};
