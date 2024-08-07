@@ -41,3 +41,6 @@ export const cykablyat = 'cykablyat';
 export const stormbringer = 'stormbringer';
 export const lonewolf = 'lonewolf';
 export const maimkillburn = 'maimkillburn';
+export const returntodust = 'returntodust';
+export const ebbandflow = 'ebbandflow';
+export const mozartreincarnated = 'mozartreincarnated';
