@@ -1,6 +1,7 @@
 import {
   InteractionResponseType,
 } from 'discord-interactions';
+import { UpdateInteractionResponse } from './discordclient.js';
 
 export function ackInteraction(res){
   return res.send({ type: InteractionResponseType.PONG });
@@ -40,6 +41,27 @@ export function respondWithUpdateMessage(res, message, options = {}) {
             components: components ?? [],
             flags: generateFlags(onlyShowToCreator)
         },
+    });
+}
+export function updateChannelMessageAfterDefer(interactionToken, message, options = {}) {
+  const {onlyShowToCreator, components} = options;
+    return UpdateInteractionResponse(process.env.APP_ID, interactionToken, {
+            content: message,
+            components: components ?? [],
+            flags: generateFlags(onlyShowToCreator)
+        });
+}
+export function respondWithDeferMessage(res, onlyShowToCreator = true) {
+    return res.send({
+        type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+            flags: generateFlags(onlyShowToCreator)
+        },
+    });
+}
+export function respondWithDeferUpdate(res) {
+    return res.send({
+        type: InteractionResponseType.DEFERRED_UPDATE_MESSAGE,
     });
 }
 export async function respondWithCommandNotImplemented(res){

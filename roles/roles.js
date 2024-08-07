@@ -46,34 +46,40 @@ export async function removeUsersCurrentRole(member, guildId){
     return true;
 }
 
-export default async function setUsersActiveRole(member, guildId, customId){
+export async function setUsersActiveRoleFromCustomId(member, guildId, customId){
     let roleName = CustomIdToRoleNameMap[customId];
     console.log(`setting user ${member.user.id} active role to "${roleName}" in guild ${guildId}`);
     const allRoles = await GetGuildRoles(guildId);
     const newRoleId = getRoleIdByName(allRoles, roleName);
+    return await setUsersActiveRole(member, guildId, newRoleId);
+}
+export async function setUsersActiveRole(member, guildId, roleId){
     const currentMemberRole = (await getMemberRole(member.user.id, guildId))[0];
     let roles = [...member.roles];
     if(currentMemberRole){
         console.log(`found current user role with id: ${currentMemberRole.roleId}`);
         const index = roles.findIndex((role) => role === currentMemberRole.roleId);
         if(index != -1){
-            if(roles[index] === newRoleId){
+            if(roles[index] === roleId){
                 console.log('existing role is the same as the new role, exiting early')
                 return true;
             }
-            roles[index] = newRoleId;
+            roles[index] = roleId;
         }
         else{
             console.log('role was not found in users role list even though there was a db entry for the user');
-            roles = [...roles, newRoleId];
+            roles = [...roles, roleId];
         }
-        await updateMemberRoleAssignment(member.user.id, guildId, newRoleId);
+        await updateMemberRoleAssignment(member.user.id, guildId, roleId);
     }
     else{
         console.log(`assigning new role to user`);
-        roles = [...roles, newRoleId];
-        await insertMemberRoleAssignment(member.user.id, guildId, newRoleId);
+        roles = [...roles, roleId];
+        await insertMemberRoleAssignment(member.user.id, guildId, roleId);
     }
     await ModifyMember(guildId, member.user.id, {roles});
     return true;
+}
+export function isRoleIdManagedRole(roleId){
+
 }

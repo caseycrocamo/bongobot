@@ -127,3 +127,23 @@ export async function GetMember(guildId, memberId) {
     return console.error(err);
   }
 }
+export async function CreateInteractionResponse(interaction, body) {
+  const endpoint = `/interactions/${interaction.id}/${interaction.token}/callback`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'POST', body });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
+  }
+}
+export async function UpdateInteractionResponse(applicationId, interactionToken, body) {
+  const endpoint = `/webhooks/${applicationId}/${interactionToken}/messages/@original`;
+
+  try {
+    const request = await DiscordRequest(endpoint, { method: 'PATCH', body });
+    return await request.json();
+  } catch (err) {
+    return console.error(err);
+  }
+}

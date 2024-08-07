@@ -86,9 +86,9 @@ async function deleteOne(collection, documentId){
         const db = client.db("BongoBot");
         const col = db.collection(collection);
         const deletionResponse = await col.deleteOne({
-            "_id": ObjectId(documentId)
+            "_id": new ObjectId(documentId)
         });
-        return await deletionResponse.deletedCount;
+        return deletionResponse.deletedCount;
     } catch {
         console.error(`Issue deleting from ${collection}`);
     }
@@ -136,15 +136,14 @@ export async function getMemberAchievement(userId, guildId, achievementId){
     return await getFromCollection("MemberAchievement", query);
 }
 export async function deleteMemberAchievement(documentId){
-    const query = { "_id": ObjectId(documentId)};
+    const query = { "_id": new ObjectId(documentId)};
     const doc = await getFromCollection("MemberAchievement", query);
-    console.log(doc);
     if(doc.length === 0) {
         console.error("no document found to delete in MemberAchievement");
         return null;
     }
     else{
-        const deleteCount = await deleteOne(documentId);
+        const deleteCount = await deleteOne("MemberAchievement", documentId);
         return deleteCount;
     }
 }

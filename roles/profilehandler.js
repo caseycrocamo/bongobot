@@ -1,14 +1,15 @@
 import 'dotenv/config';
-import { GetMember } from '../discordclient.js';
-import setUsersActiveRole, { removeUsersCurrentRole } from '../roles/roles.js';
+import { GetGuildRoles, GetMember, UpdateInteractionResponse } from '../discordclient.js';
+import { removeUsersCurrentRole, setUsersActiveRole, setUsersActiveRoleFromCustomId } from '../roles/roles.js';
 import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_choice_dropdown, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
 import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
 import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
 import { memberCanManageRoles } from '../member.js';
 import { PROFESSION_ROLES } from '../roles/professionRoles.js';
-import { respondWithComponentMessage, respondWithUpdateMessage, respondWithCommandNotImplemented } from '../discordresponsehelper.js';
+import { respondWithComponentMessage, respondWithUpdateMessage, respondWithCommandNotImplemented, respondWithDeferMessage, respondWithDeferUpdate, updateChannelMessageAfterDefer } from '../discordresponsehelper.js';
 import { CRAFTING_ROLES } from './craftingRoles.js';
+import { getCustomIdFromRoleId } from './achievementHandler.js';
 export function respondWithCraftingChoices(res){
   const message = 'Show off your crafting prowess with a shiny new name color and crafting icon! Pick a discipline:';
   const options = CRAFTING_ROLES.map((role) => {
@@ -147,33 +148,43 @@ export function handleProfileCommand(res){
   return respondWithComponentMessage(res, message, {components, onlyShowToCreator: true});
 }
 export async function handleSetProfile(res, callingMember, guild_id, role){
+    const response = respondWithUpdateMessage(res, 'Updating user\'s profile. Please hold...');
+    const interactionToken = response.req.body.token;
     try{
         const grantAchievementState = await getMemberCommandState(callingMember.user.id);
         const targetId = await getTargetIdFromState(grantAchievementState, callingMember.user.id);
         const member = await GetMember(guild_id, targetId);
         console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
+        const customId = await getCustomIdFromRoleId(guild_id, role);
+        if(customId === undefined || customId === null){
+            console.log(`member (${member}) attempted to set their role to a non managed role (${role}). Exiting early.`);
+            return await updateChannelMessageAfterDefer(interactionToken, 'Unable to set profile to an unmanaged role. Try again with a different role.');
+        }
         await setUsersActiveRole(member, guild_id, role);
-        return respondWithUpdateMessage(res, 'Successfully updated member\'s role!');
+        return await updateChannelMessageAfterDefer(interactionToken, 'Successfully updated member\'s role!');
     } catch(err){
         console.error(err);
-        respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
+        return await updateChannelMessageAfterDefer(interactionToken, 'Something went wrong. Try again later or contact a mod.')
     }
 }
 export async function handleAssignAchievement(res, callingMember, guild_id, achievement_id){
+    //ack interaction then handle and update afterwards
+    const response = await respondWithUpdateMessage(res, 'Attempting to assign achievement. Please hold...');
+    const interactionToken = response.req.body.token;
     try{
         const grantAchievementStates = await getMemberCommandState(callingMember.user.id);
         const targetUserId = await getTargetIdFromState(grantAchievementStates, callingMember.user.id);
         const existingMemberAchievement = await getMemberAchievement(targetUserId, guild_id, achievement_id);
         if(existingMemberAchievement !== undefined && existingMemberAchievement[0]){
             console.log('User (id: ', targetUserId, ') already has the achievement ', achievement_id, '. Exiting early.');
-            return respondWithUpdateMessage(res, 'User already has the assigned achievement.')
+            return updateChannelMessageAfterDefer(interactionToken, 'User already has the assigned achievement.')
         }
         await insertMemberAchievement(targetUserId, guild_id, achievement_id);
-        return respondWithUpdateMessage(res, 'Achievement assigned successfully.');
+        return updateChannelMessageAfterDefer(interactionToken, 'Achievement assigned successfully.');
     } catch(err){
         console.error(err);
-        return respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.')
+        return updateChannelMessageAfterDefer(interactionToken, 'Something went wrong. Try again later or contact a mod.')
     }
 }
 export async function handleRemoveRole(res, member, guild_id){
@@ -187,12 +198,14 @@ export async function handleRemoveRole(res, member, guild_id){
     }
 }
 export async function handleProfileUpdate(res, member, guild_id, role){
+    const response = respondWithUpdateMessage(res, 'Updating your server profile. Please hold...');
+    const interactionToken = response.req.body.token;
     try{
-      await setUsersActiveRole(member, guild_id, role);
-      return respondWithUpdateMessage(res, 'Successfully updated your active role!');
+      await setUsersActiveRoleFromCustomId(member, guild_id, role);
+      return updateChannelMessageAfterDefer(interactionToken, 'Successfully updated your active role!');
     } catch(err){
         console.log(err);
-      return respondWithUpdateMessage(res, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
+      return updateChannelMessageAfterDefer(interactionToken, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
     }
 }
 
@@ -293,41 +306,18 @@ export async function handleSetProfileCommand(res, callingMember, target_id){
         console.log(err);
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
-    const professionOptions = PROFESSION_ROLES.map((role) => {
-        return {
-                  label: role.name,
-                  value: role.custom_id
-                };
-    });
-    const achievementOptions = ACHIEVEMENT_ROLES.map((role) => {
-        return {
-                  label: role.name,
-                  value: role.custom_id
-                };
-    });
-    const craftingOptions = CRAFTING_ROLES.map((role) => {
-        return {
-                  label: role.name,
-                  value: role.custom_id
-                };
-    });
-    const options = [...achievementOptions, ...professionOptions, ...craftingOptions];
-    options.sort((a, b) => a.label.localeCompare(b.label));
     const components = [
         {
             type: 1,
             components: [
                 {
-                  type: 3,
+                  type: 6,
                   custom_id: profile_name_dropdown,
-                  options,
-                  placeholder: "Choose a Profile",
-                  min_values: 1,
-                  max_values: 1
-      }]
+                  placeholder: "Choose a Profile"
+            }]
       },
   ];
-    return await respondWithComponentMessage(res, 'Which profile would you like to assign?', {onlyShowToCreator: true,components})
+    return await respondWithComponentMessage(res, 'Which profile would you like to assign?', {onlyShowToCreator: true, components})
 }
 async function getTargetIdFromState(state, userId){
     console.log('state for userId: ',state);
