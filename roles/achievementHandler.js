@@ -32,16 +32,26 @@ async function handleViewAchievements(interactionToken, userId, guildId){
 }
 async function handleAchieve(interactionToken, userId, guildId, achievement, proof){
     try{
-        const achievements = await getUsersAchievements(userId, guildId);
         const customId = await getCustomIdFromRoleId(guildId, achievement);
         if(!isCustomIdAchievementRole(customId)){
-            console.log(roleName, 'does not correspond to an achievement role. returning a message to the user', userId);
-            return updateChannelMessageAfterDefer(interactionToken, `${roleName} is not an achievement, please choose a different role.`, {onlyShowToCreator: true});
+            console.log(customId, 'does not correspond to an achievement role. returning a message to the user', userId);
+            return updateChannelMessageAfterDefer(interactionToken, `<@&${achievement}> is not an achievement, please choose a different role.`, {onlyShowToCreator: true});
         }
+        const roleName = CustomIdToRoleNameMap[customId];
+        const achievements = await getUsersAchievements(userId, guildId);
         const userHasAchievement = achievements.findIndex(achievement => achievement === customId) !== -1;
         console.log('user', userId, 'is achieving', customId);
         if(userHasAchievement){
             return updateChannelMessageAfterDefer(interactionToken, `You have already achieved ${roleName}\n Use the \`/profile\` command to show off your favorite achievement with a matching name color and badge`, {onlyShowToCreator: true});
+        }
+        const requirements = ACHIEVEMENT_ROLES.find(achievement => achievement.custom_id === customId)?.requirements;
+        if(requirements && requirements.length > 0){
+            for(let requirement in requirements){
+                if(achievements.findIndex(achievement => achievement === requirement) === -1) {
+                    console.log('user', userId, 'does not meet the requirements for', customId, "they need to earn", roleName);
+                    return updateChannelMessageAfterDefer(interactionToken, `You do not meet the requirements for this role. Try again after achieving ${roleName}.`, {onlyShowToCreator: true});
+                }
+            }
         }
         await insertMemberAchievement(userId, guildId, customId);
         let message = `<@!${userId}> has earned <@&${achievement}>`;
