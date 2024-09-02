@@ -50,3 +50,4 @@ export const eyeofthestorm = 'eyeofthestorm';
 export const mindovermatter = 'mindovermatter';
 export const theavatar = 'theavatar';
 export const spherespecialist = 'spherespecialist';
+export const shakeitoff = 'shakeitoff';
