@@ -51,3 +51,5 @@ export const mindovermatter = 'mindovermatter';
 export const theavatar = 'theavatar';
 export const spherespecialist = 'spherespecialist';
 export const shakeitoff = 'shakeitoff';
+export const tyriasnexttopmodel = 'tyriasnexttopmodel';
+export const speeddemon = 'speeddemon';
