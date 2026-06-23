@@ -288,7 +288,7 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
             }]
             },
         ];
-        return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true,components})
+        return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true, components})
     } catch(err){
         console.error(err);
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
