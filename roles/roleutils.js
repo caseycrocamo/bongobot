@@ -23,9 +23,12 @@ CRAFTING_ROLES.map((role) => {
     RoleNameToCustomIdMap[role.name] = role.custom_id;
 });
 export function getRoleIdByName(roles, name){
-    return roles.find((role) => role.name.toLowerCase().replace(/\s+/g, '') === name.toLowerCase().replace(/\s+/g, '')).id;
+    const normalizedName = name?.toLowerCase().replace(/\s+/g, '');
+    const matchedRole = roles.find((role) => role.name?.toLowerCase().replace(/\s+/g, '') === normalizedName);
+    return matchedRole?.id;
 }
 export function getRoleNameById(roles, id){
-    return roles.find((role) => role.id === id).name;
+    const matchedRole = roles.find((role) => role.id === id);
+    return matchedRole?.name;
 }
 export {CustomIdToRoleNameMap, RoleNameToCustomIdMap};
