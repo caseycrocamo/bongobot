@@ -150,6 +150,12 @@ export function handleProfileCommand(res){
 export async function handleSetProfile(res, callingMember, guild_id, role, targetId, interactionToken){
     respondWithUpdateMessage(res, 'Updating user\'s profile. Please hold...');
     try{
+        // Secondary authorization check — primary enforcement is via default_member_permissions on the command definition.
+        const authorized = await memberCanManageRoles(callingMember);
+        if(!authorized){
+            console.warn('User ', callingMember.user.id, ' does not have permission to set profiles.');
+            return await updateChannelMessageAfterDefer(interactionToken, 'You don\'t have permission to perform this action.');
+        }
         const member = await GetMember(guild_id, targetId);
         console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
@@ -169,6 +175,12 @@ export async function handleAssignAchievement(res, callingMember, guild_id, achi
     //ack interaction then handle and update afterwards
     respondWithUpdateMessage(res, 'Attempting to assign achievement. Please hold...');
     try{
+        // Secondary authorization check — primary enforcement is via default_member_permissions on the command definition.
+        const authorized = await memberCanManageRoles(callingMember);
+        if(!authorized){
+            console.warn('User ', callingMember.user.id, ' does not have permission to grant achievements.');
+            return updateChannelMessageAfterDefer(interactionToken, 'You don\'t have permission to perform this action.');
+        }
         const existingMemberAchievement = await getMemberAchievement(targetUserId, guild_id, achievement_id);
         if(existingMemberAchievement !== undefined && existingMemberAchievement[0]){
             console.log('User (id: ', targetUserId, ') already has the achievement ', achievement_id, '. Exiting early.');
