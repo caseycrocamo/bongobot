@@ -1,52 +1,63 @@
-# Discord Response Helper API
+# Agent Instructions and Command Conventions
 
-## Key Files
+## Adding a New Slash Command
 
-| File | Description |
-|------|-------------|
-| `discordresponsehelper.js` | Helper functions for Discord interaction responses |
+When adding a new slash command to the bot, follow these conventions:
 
-## Response Functions
+1. Define the command object in `commands/commands.js`
+2. Add the command to the `ALL_COMMANDS` export
+3. For public commands: define normally
+4. For mod-only commands: declare `default_member_permissions` with the required permission bitfield string
 
-### `respondWithModal(res, customId, title, components)`
+### Mod-Only Commands
 
-Sends a modal (popup form) interaction response.
+Mod-only commands must declare `default_member_permissions` to enforce permissions at the Discord level. This prevents users without the required permissions from seeing the command in their UI.
 
-**Parameters:**
-- `res` - Express response object
-- `customId` (string) - Developer-defined identifier for the modal, 1–100 characters
-- `title` (string) - Title of the popup modal, max 45 characters
-- `components` (array) - Between 1 and 5 components that make up the modal
-
-**Modal Requirements:**
-- Modal responses (`type: 9`) require `custom_id` (1–100 chars) and `title` (max 45 chars)
-- They do **not** accept `content` or `flags` fields
-- Components must be modal-compatible types: Label (type 18), Text Input (type 4), String Select (type 3), Radio Group (type 21), Checkbox Group (type 22), Checkbox (type 23), File Upload (type 19)
-- `Label` (type 18) is preferred over `Action Row` + `Text Input` in modals per current Discord docs
-
-**Example Usage:**
+**Examples:**
 
 ```js
-respondWithModal(res, 'bug_report_modal', 'Submit a Bug Report', [
-    {
-        type: 18, // Label
-        label: 'Describe the bug',
-        component: {
-            type: 4, // Text Input
-            custom_id: 'bug_description',
-            style: 2, // Paragraph
-            placeholder: 'What happened?',
-            required: true
-        }
-    }
-]);
+// Mod command that requires MANAGE_ROLES permission
+const MANAGE_ROLES_PERMISSION = String(1 << 28); // "268435456"
+
+export const GRANT_MEMBER_ACHIEVEMENT_COMMAND = {
+    name: 'Grant Achievement',
+    type: 2, // context menu command
+    default_member_permissions: MANAGE_ROLES_PERMISSION
+};
 ```
 
-### Other Response Functions
+This approach has two layers of security:
 
-- `ackInteraction(res)` - Sends a PONG interaction response (acknowledgement)
-- `respondWithComponentMessage(res, message, options)` - Sends a channel message with components
-- `respondWithUpdateMessage(res, message, options)` - Updates the original interaction message
-- `respondWithDeferMessage(res, onlyShowToCreator)` - Defers the interaction response
-- `respondWithDeferUpdate(res)` - Defers a message component interaction
-- `respondWithCommandNotImplemented(res)` - Sends a "not implemented" response
+1. **Primary enforcement (Discord level):** The `default_member_permissions` field prevents unauthorized users from seeing and invoking the command.
+2. **Secondary enforcement (application level):** In-code permission checks (e.g., `memberCanManageRoles`) guard against edge cases (permissions changed after registration, direct API calls, etc.).
+
+## Command Registration
+
+After modifying `commands/commands.js`, always re-run the command registration to push updates to Discord:
+
+```bash
+# For guild-specific commands
+npm run register-guild-commands
+
+# For global commands
+npm run register-global-commands
+```
+
+Command registration is idempotent — POSTing a command with the same name and type updates the existing registration.
+
+## Permission Bitfields
+
+Common Discord permission bits:
+
+- `MANAGE_ROLES`: `1 << 28` = `268435456`
+- `ADMINISTRATOR`: `1 << 3` = `8`
+- `MANAGE_GUILD`: `1 << 5` = `32`
+
+[Full permission reference](https://discord.com/developers/docs/topics/permissions)
+
+## File Structure
+
+- `commands/commands.js` - Command definitions
+- `commands/installguild.js` - Guild command registration
+- `commands/installglobal.js` - Global command registration
+- `roles/profilehandler.js` - Command handlers and secondary authorization checks

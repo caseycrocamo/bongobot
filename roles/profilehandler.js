@@ -258,6 +258,9 @@ export async function respondWithAchievementChoices(res, userId, guildId){
 }
 export async function handleGrantAchievementCommand(res, callingMember, target_id){
     try {
+        // Secondary authorization check — primary enforcement is via default_member_permissions
+        // on the command definition. This guards against edge cases (e.g., permissions changed
+        // after command registration, or direct API calls bypassing the Discord client).
         const authorized = await memberCanManageRoles(callingMember);
         if(!authorized){
           console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
@@ -296,6 +299,9 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
 }
 export async function handleSetProfileCommand(res, callingMember, target_id){
     try {
+        // Secondary authorization check — primary enforcement is via default_member_permissions
+        // on the command definition. This guards against edge cases (e.g., permissions changed
+        // after command registration, or direct API calls bypassing the Discord client).
         const authorized = await memberCanManageRoles(callingMember);
         if(!authorized){
           console.warn('User ', callingMember.user.id, " does not have permission to set profiles.");

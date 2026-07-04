@@ -1,3 +1,6 @@
+// Permission bit for MANAGE_ROLES
+const MANAGE_ROLES_PERMISSION = String(1 << 28); // "268435456"
+
 export const PROFILE_COMMAND = {
     name: 'profile',
     description: 'customize your appearance in this server with a name color and badge',
@@ -133,11 +136,13 @@ export const TIMESTAMP_COMMAND = {
 };
 export const GRANT_MEMBER_ACHIEVEMENT_COMMAND = {
     name: 'Grant Achievement',
-    type: 2
+    type: 2,
+    default_member_permissions: MANAGE_ROLES_PERMISSION
 }
 export const SET_MEMBER_PROFILE_COMMAND = {
     name: 'Set Profile',
-    type: 2
+    type: 2,
+    default_member_permissions: MANAGE_ROLES_PERMISSION
 }
 
 export const ALL_COMMANDS = [TIMESTAMP_COMMAND, PROFILE_COMMAND, ACHIEVEMENT_COMMAND, GRANT_MEMBER_ACHIEVEMENT_COMMAND, SET_MEMBER_PROFILE_COMMAND, HELP_COMMAND];
