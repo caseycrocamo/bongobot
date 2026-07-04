@@ -22,7 +22,7 @@ app.get('/', async function(_, res) {
  */
 app.post('/interactions', async function (req, res) {
   // Interaction type and data
-  const { type, data, member, guild_id } = req.body;
+  const { type, data, member, guild_id, token } = req.body;
 
   /**
    * Handle verification requests
@@ -49,7 +49,7 @@ app.post('/interactions', async function (req, res) {
           return handleHelpCommand(res);
         case 'achievements':
           console.log('matched on achievements command.')
-          return await handleAchievementsCommand(res, member.user.id, guild_id, options);
+          return await handleAchievementsCommand(res, member.user.id, guild_id, options, token);
         case 'Grant Achievement':
           console.log('matched on grant achievmement command.')
           return handleGrantAchievementCommand(res, member, target_id);
@@ -72,15 +72,15 @@ app.post('/interactions', async function (req, res) {
       case choose_crafting:
         return respondWithCraftingChoices(res);
       case achievement_name_dropdown:
-        return await handleAssignAchievement(res, member, guild_id, data.values[0]);
+        return await handleAssignAchievement(res, member, guild_id, data.values[0], token);
       case profile_name_dropdown:
-        return await handleSetProfile(res, member, guild_id, data.values[0]);
+        return await handleSetProfile(res, member, guild_id, data.values[0], token);
       case profile_choice_dropdown:
-        return await handleProfileUpdate(res, member, guild_id, data.values[0]);
+        return await handleProfileUpdate(res, member, guild_id, data.values[0], token);
       case remove_all:
         return await handleRemoveRole(res, member, guild_id);
       default: 
-        return await handleProfileUpdate(res, member, guild_id, data.custom_id);
+        return await handleProfileUpdate(res, member, guild_id, data.custom_id, token);
     }
   }
 });
