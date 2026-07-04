@@ -6,16 +6,14 @@ import { UpdateInteractionResponse } from './discordclient.js';
 export function ackInteraction(res){
   return res.send({ type: InteractionResponseType.PONG });
 }
-export function respondWithModal(res, message, options = {}){
-    const {onlyShowToCreator, components} = options;
-    let flags = generateFlags(onlyShowToCreator, components != null && components.length > 0);
-    console.info('Responding with modal message with flags: ' + flags);
+export function respondWithModal(res, customId, title, components){
+    console.info('Responding with modal: ' + customId);
     return res.send({
         type: InteractionResponseType.MODAL,
         data: {
-            content: message,
-            components: components ?? [],
-            flags: flags
+            custom_id: customId,
+            title: title,
+            components: components
         },
     });
 }
