@@ -89,20 +89,17 @@ async function handleAchieve(interactionToken, userId, guildId, achievement, pro
         updateChannelMessageAfterDefer(interactionToken, 'Something went wrong, please try again or contact a mod.', {onlyShowToCreator: true});
     }
 }
-export async function handleAchievementsCommand(res, userId, guildId, commandOptions){
+export async function handleAchievementsCommand(res, userId, guildId, commandOptions, interactionToken){
     const {name, options} = commandOptions[0];
-    let response, interactionToken = null;
     switch(name){
         case 'view':
             console.log('acking the interaction then returning earned achievements for user ', userId, 'in guild', guildId);
             //ack interaction then handle and update afterwards
-            response = await respondWithDeferMessage(res);
-            interactionToken = response.req.body.token;
+            respondWithDeferMessage(res);
             return await handleViewAchievements(interactionToken, userId, guildId);
         case 'achieve':
             //ack interaction then handle and update afterwards
-            response = await respondWithDeferMessage(res, false);
-            interactionToken = response.req.body.token;
+            respondWithDeferMessage(res, false);
             const achievement = options[0].value;
             const proof = options[1]?.value;
             console.log("user", userId, "is attempting to achieve role", achievement);

@@ -147,9 +147,8 @@ export function handleProfileCommand(res){
   ]
   return respondWithComponentMessage(res, message, {components, onlyShowToCreator: true});
 }
-export async function handleSetProfile(res, callingMember, guild_id, role){
-    const response = respondWithUpdateMessage(res, 'Updating user\'s profile. Please hold...');
-    const interactionToken = response.req.body.token;
+export async function handleSetProfile(res, callingMember, guild_id, role, interactionToken){
+    respondWithUpdateMessage(res, 'Updating user\'s profile. Please hold...');
     try{
         const grantAchievementState = await getMemberCommandState(callingMember.user.id);
         const targetId = await getTargetIdFromState(grantAchievementState, callingMember.user.id);
@@ -168,10 +167,9 @@ export async function handleSetProfile(res, callingMember, guild_id, role){
         return await updateChannelMessageAfterDefer(interactionToken, 'Something went wrong. Try again later or contact a mod.')
     }
 }
-export async function handleAssignAchievement(res, callingMember, guild_id, achievement_id){
+export async function handleAssignAchievement(res, callingMember, guild_id, achievement_id, interactionToken){
     //ack interaction then handle and update afterwards
-    const response = await respondWithUpdateMessage(res, 'Attempting to assign achievement. Please hold...');
-    const interactionToken = response.req.body.token;
+    respondWithUpdateMessage(res, 'Attempting to assign achievement. Please hold...');
     try{
         const grantAchievementStates = await getMemberCommandState(callingMember.user.id);
         const targetUserId = await getTargetIdFromState(grantAchievementStates, callingMember.user.id);
@@ -197,9 +195,8 @@ export async function handleRemoveRole(res, member, guild_id){
       return respondWithUpdateMessage(res, 'Sorry, I was unable to update your role. Try again or contact a local mod.');
     }
 }
-export async function handleProfileUpdate(res, member, guild_id, role){
-    const response = respondWithUpdateMessage(res, 'Updating your server profile. Please hold...');
-    const interactionToken = response.req.body.token;
+export async function handleProfileUpdate(res, member, guild_id, role, interactionToken){
+    respondWithUpdateMessage(res, 'Updating your server profile. Please hold...');
     try{
       await setUsersActiveRoleFromCustomId(member, guild_id, role);
       return updateChannelMessageAfterDefer(interactionToken, 'Successfully updated your active role!');
