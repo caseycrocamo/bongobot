@@ -8,7 +8,7 @@ export function ackInteraction(res){
 }
 export function respondWithModal(res, message, options = {}){
     const {onlyShowToCreator, components} = options;
-    let flags = generateFlags(onlyShowToCreator, components != null && components.length > 0);
+    let flags = generateFlags(onlyShowToCreator);
     console.info('Responding with modal message with flags: ' + flags);
     return res.send({
         type: InteractionResponseType.MODAL,
@@ -22,7 +22,7 @@ export function respondWithModal(res, message, options = {}){
 export function respondWithComponentMessage(res, message, options = {}){
   const {onlyShowToCreator, components} = options;
   try{
-    let flags = generateFlags(onlyShowToCreator, components != null && components.length > 0);
+    let flags = generateFlags(onlyShowToCreator);
     console.info('Responding with component message. with flags: ' + flags);
     return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -38,7 +38,7 @@ export function respondWithComponentMessage(res, message, options = {}){
 }
 export function respondWithUpdateMessage(res, message, options = {}) {
    const {onlyShowToCreator, components} = options;
-    let flags = generateFlags(onlyShowToCreator, components != null && components.length > 0);
+    let flags = generateFlags(onlyShowToCreator);
     console.info('Responding with update message. with flags: ' + flags);
     return res.send({
         type: InteractionResponseType.UPDATE_MESSAGE,
@@ -51,7 +51,7 @@ export function respondWithUpdateMessage(res, message, options = {}) {
 }
 export function updateChannelMessageAfterDefer(interactionToken, message, options = {}) {
   const {onlyShowToCreator, components} = options;
-    let flags = generateFlags(onlyShowToCreator, components != null && components.length > 0);
+    let flags = generateFlags(onlyShowToCreator);
     console.info('Updating channel message after defer. with flags: ' + flags);
     return UpdateInteractionResponse(process.env.APP_ID, interactionToken, {
             content: message,
@@ -75,13 +75,9 @@ export function respondWithDeferUpdate(res) {
 export async function respondWithCommandNotImplemented(res){
   return respondWithComponentMessage(res, 'Command is not implemented yet. Try again later or message @sif', {onlyShowToCreator: true});
 }
-export function generateFlags(onlyShowToCreator, isComponentMessage){
-    let flags = null;
+export function generateFlags(onlyShowToCreator){
     if(onlyShowToCreator === true){
-        flags = flags | (1 << 6);
+        return (1 << 6);
     }
-    if(isComponentMessage === true){
-        flags = flags | (1 << 15);
-    }
-    return flags;
+    return null;
 }
