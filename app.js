@@ -84,6 +84,20 @@ app.post('/interactions', async function (req, res) {
         return await handleProfileUpdate(res, member, guild_id, baseCustomId, token);
     }
   }
+
+  /**
+   * Handle modal submit requests
+   * See https://discord.com/developers/docs/interactions/receiving-and-responding#modal-submit-object
+   */
+  if (type === InteractionType.MODAL_SUBMIT) {
+    const { custom_id, components } = data;
+    console.log(`Received MODAL_SUBMIT for custom_id: ${custom_id}`);
+    switch(custom_id) {
+      default:
+        console.warn(`Unhandled MODAL_SUBMIT: ${custom_id}`);
+        return ackInteraction(res);
+    }
+  }
 });
 
 app.listen(PORT, () => {
