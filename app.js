@@ -64,7 +64,8 @@ app.post('/interactions', async function (req, res) {
   if (type === InteractionType.MESSAGE_COMPONENT) {
     console.log('interaction matched on Message Type. responding based on the custom_id...');
     const {custom_id} = data;
-    switch(custom_id){
+    const [baseCustomId, encodedTargetId] = custom_id.split(':');
+    switch(baseCustomId){
       case choose_achievement:
         return respondWithAchievementChoices(res, member.user.id, guild_id);
       case choose_profession:
@@ -72,15 +73,15 @@ app.post('/interactions', async function (req, res) {
       case choose_crafting:
         return respondWithCraftingChoices(res);
       case achievement_name_dropdown:
-        return await handleAssignAchievement(res, member, guild_id, data.values[0]);
+        return await handleAssignAchievement(res, member, guild_id, data.values[0], encodedTargetId);
       case profile_name_dropdown:
-        return await handleSetProfile(res, member, guild_id, data.values[0]);
+        return await handleSetProfile(res, member, guild_id, data.values[0], encodedTargetId);
       case profile_choice_dropdown:
         return await handleProfileUpdate(res, member, guild_id, data.values[0]);
       case remove_all:
         return await handleRemoveRole(res, member, guild_id);
       default: 
-        return await handleProfileUpdate(res, member, guild_id, data.custom_id);
+        return await handleProfileUpdate(res, member, guild_id, baseCustomId);
     }
   }
 });
