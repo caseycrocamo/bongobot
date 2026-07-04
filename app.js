@@ -2,9 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import { InteractionType } from 'discord-interactions';
 import { VerifyDiscordRequest } from './discordclient.js';
-import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, profile_choice_dropdown, profile_name_dropdown, remove_all } from './customids.js';
+import { achievement_name_dropdown, grant_achievement_category_dropdown, choose_achievement, choose_crafting, choose_profession, profile_choice_dropdown, profile_name_dropdown, remove_all } from './customids.js';
 import { handleTimestampCommand } from './timezones/timezonehandler.js'; 
-import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices, handleHelpCommand  } from './roles/profilehandler.js';
+import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleGrantAchievementCategorySelect, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices, handleHelpCommand  } from './roles/profilehandler.js';
 import { ackInteraction, respondWithDeferMessage } from './discordresponsehelper.js';
 import { handleAchievementsCommand } from './roles/achievementHandler.js';
 
@@ -74,6 +74,8 @@ app.post('/interactions', async function (req, res) {
         return respondWithCraftingChoices(res);
       case achievement_name_dropdown:
         return await handleAssignAchievement(res, member, guild_id, data.values[0], encodedTargetId, token);
+      case grant_achievement_category_dropdown:
+        return await handleGrantAchievementCategorySelect(res, member, guild_id, data.values[0], encodedTargetId, token);
       case profile_name_dropdown:
         return await handleSetProfile(res, member, guild_id, data.values[0], encodedTargetId, token);
       case profile_choice_dropdown:

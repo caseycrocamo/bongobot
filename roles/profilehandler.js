@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import { GetGuildRoles, GetMember, UpdateInteractionResponse } from '../discordclient.js';
 import { removeUsersCurrentRole, setUsersActiveRole, setUsersActiveRoleFromCustomId } from '../roles/roles.js';
-import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_choice_dropdown, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
+import { achievement_name_dropdown, grant_achievement_category_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_choice_dropdown, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
 import { getMemberAchievement, insertMemberAchievement } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
-import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
+import { ACHIEVEMENT_ROLES, ACHIEVEMENT_CATEGORIES } from '../roles/achievementRoles.js';
 import { memberCanManageRoles } from '../member.js';
 import { PROFESSION_ROLES } from '../roles/professionRoles.js';
 import { respondWithComponentMessage, respondWithUpdateMessage, respondWithCommandNotImplemented, respondWithDeferMessage, respondWithDeferUpdate, updateChannelMessageAfterDefer } from '../discordresponsehelper.js';
@@ -265,37 +265,67 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
     try {
         const authorized = await memberCanManageRoles(callingMember);
         if(!authorized){
-          console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
-          return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
+            console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
+            return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
-        let options = [];
-        ACHIEVEMENT_ROLES.map((achievement) => 
-            options.push(
-            {
-                label: achievement.short_name,
-                value: achievement.custom_id,
-                description: achievement.description
-            })
-        );
-        options.sort((a, b) => a.label.localeCompare(b.label));
+        const categoryOptions = ACHIEVEMENT_CATEGORIES.map(cat => ({
+            label: cat.name,
+            value: cat.name,
+            description: `${cat.achievements.length} achievement${cat.achievements.length !== 1 ? 's' : ''}`
+        }));
         const components = [
             {
                 type: 1,
-                components: [
-                    {
+                components: [{
                     type: 3,
-                        custom_id: `${achievement_name_dropdown}:${target_id}`,
-                        options,
-                        placeholder: "Choose an Achievement",
-                        min_values: 1,
-                        max_values: 1
-            }]
-            },
+                    custom_id: `${grant_achievement_category_dropdown}:${target_id}`,
+                    options: categoryOptions,
+                    placeholder: 'Select a category',
+                    min_values: 1,
+                    max_values: 1
+                }]
+            }
         ];
-        return await respondWithComponentMessage(res, 'Which achievement would you like to assign?', {onlyShowToCreator: true, components})
+        return await respondWithComponentMessage(res, 'Which category does the achievement belong to?', {onlyShowToCreator: true, components});
     } catch(err){
         console.error(err);
         return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
+    }
+}
+
+export async function handleGrantAchievementCategorySelect(res, callingMember, guild_id, selectedCategory, targetId, token){
+    try {
+        const authorized = await memberCanManageRoles(callingMember);
+        if(!authorized){
+            console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
+            return await respondWithUpdateMessage(res, 'You don\'t have permission to perform this action.', {onlyShowToCreator: true});
+        }
+        const category = ACHIEVEMENT_CATEGORIES.find(c => c.name === selectedCategory);
+        if(!category){
+            return await respondWithUpdateMessage(res, `Unknown category: ${selectedCategory}`, {onlyShowToCreator: true});
+        }
+        const options = category.achievements.map(achievement => ({
+            label: achievement.short_name,
+            value: achievement.custom_id,
+            description: achievement.description
+        })).sort((a, b) => a.label.localeCompare(b.label));
+        const components = [
+            {
+                type: 1,
+                components: [{
+                    type: 3,
+                    custom_id: `${achievement_name_dropdown}:${targetId}`,
+                    options,
+                    placeholder: `Choose a ${selectedCategory} Achievement`,
+                    min_values: 1,
+                    max_values: 1
+                }]
+            }
+        ];
+        return respondWithUpdateMessage(res, `Which **${selectedCategory}** achievement would you like to assign?`, {onlyShowToCreator: true, components});
+    } catch(err){
+        console.error(err);
+        return respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
 }
 export async function handleSetProfileCommand(res, callingMember, target_id){

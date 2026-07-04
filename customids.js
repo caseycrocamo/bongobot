@@ -1,5 +1,6 @@
 //commands
 export const achievement_name_dropdown = 'set_user_achievement';
+export const grant_achievement_category_dropdown = 'grant_achievement_category';
 export const profile_name_dropdown = 'set_user_profile';
 export const profile_choice_dropdown = 'set_profile_choice';
 //profile choices
