@@ -147,22 +147,6 @@ export async function deleteMemberAchievement(documentId){
         return deleteCount;
     }
 }
-export async function insertMemberCommandState(userId, targetId){
-    const doc = {userId, targetId};
-    const result = await insertOne("MemberCommandState", doc);
-    console.log('A MemberCommandState ', doc, 'was inserted with document _id: ', result.insertedId);
-    return result.insertedId;
-}
-export async function getMemberCommandState(userId){
-    const query = {userId};
-    return await getFromCollection("MemberCommandState", query);
-}
-export async function removeMemberCommandState(userId){
-    const query = {userId};
-    const response = await removeFromCollection("MemberCommandState", query);
-    console.log('deleted ', response, ' state(s) from MemberCommandState');
-    return response;
-}
 export async function insertMemberApiKey(userId, apiKey){
     const doc = {userId, apiKey};
     const result = await insertOne("MemberApiKey", doc);

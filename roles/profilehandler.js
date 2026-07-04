@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { GetGuildRoles, GetMember, UpdateInteractionResponse } from '../discordclient.js';
 import { removeUsersCurrentRole, setUsersActiveRole, setUsersActiveRoleFromCustomId } from '../roles/roles.js';
 import { achievement_name_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_choice_dropdown, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
-import { getMemberCommandState, getMemberAchievement, insertMemberCommandState, insertMemberAchievement, removeMemberCommandState } from '../mongo.js';
+import { getMemberAchievement, insertMemberAchievement } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
 import { ACHIEVEMENT_ROLES } from '../roles/achievementRoles.js';
 import { memberCanManageRoles } from '../member.js';
@@ -147,11 +147,9 @@ export function handleProfileCommand(res){
   ]
   return respondWithComponentMessage(res, message, {components, onlyShowToCreator: true});
 }
-export async function handleSetProfile(res, callingMember, guild_id, role, interactionToken){
+export async function handleSetProfile(res, callingMember, guild_id, role, targetId, interactionToken){
     respondWithUpdateMessage(res, 'Updating user\'s profile. Please hold...');
     try{
-        const grantAchievementState = await getMemberCommandState(callingMember.user.id);
-        const targetId = await getTargetIdFromState(grantAchievementState, callingMember.user.id);
         const member = await GetMember(guild_id, targetId);
         console.log(`user ${callingMember.user.id} is setting a profile (${role}) in guild ${guild_id} for user ${targetId}`)
         //handle no member found
@@ -167,12 +165,10 @@ export async function handleSetProfile(res, callingMember, guild_id, role, inter
         return await updateChannelMessageAfterDefer(interactionToken, 'Something went wrong. Try again later or contact a mod.')
     }
 }
-export async function handleAssignAchievement(res, callingMember, guild_id, achievement_id, interactionToken){
+export async function handleAssignAchievement(res, callingMember, guild_id, achievement_id, targetUserId, interactionToken){
     //ack interaction then handle and update afterwards
     respondWithUpdateMessage(res, 'Attempting to assign achievement. Please hold...');
     try{
-        const grantAchievementStates = await getMemberCommandState(callingMember.user.id);
-        const targetUserId = await getTargetIdFromState(grantAchievementStates, callingMember.user.id);
         const existingMemberAchievement = await getMemberAchievement(targetUserId, guild_id, achievement_id);
         if(existingMemberAchievement !== undefined && existingMemberAchievement[0]){
             console.log('User (id: ', targetUserId, ') already has the achievement ', achievement_id, '. Exiting early.');
@@ -260,7 +256,6 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
           console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
           return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
-        await insertMemberCommandState(callingMember.user.id, target_id);
         let options = [];
         ACHIEVEMENT_ROLES.map((achievement) => 
             options.push(
@@ -277,7 +272,7 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
                 components: [
                     {
                     type: 3,
-                        custom_id: achievement_name_dropdown,
+                        custom_id: `${achievement_name_dropdown}:${target_id}`,
                         options,
                         placeholder: "Choose an Achievement",
                         min_values: 1,
@@ -293,36 +288,25 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
 }
 export async function handleSetProfileCommand(res, callingMember, target_id){
     try {
-        const authorized = await memberCanManageRoles(callingMember);
-        if(!authorized){
-          console.warn('User ', callingMember.user.id, " does not have permission to set profiles.");
-          return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
-        }
-        await insertMemberCommandState(callingMember.user.id, target_id);
+       const authorized = await memberCanManageRoles(callingMember);
+       if(!authorized){
+         console.warn('User ', callingMember.user.id, " does not have permission to set profiles.");
+         return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
+       }
+       const components = [
+           {
+               type: 1,
+               components: [
+                   {
+                     type: 6,
+                     custom_id: `${profile_name_dropdown}:${target_id}`,
+                     placeholder: "Choose a Profile"
+               }]
+         },
+     ];
+       return await respondWithComponentMessage(res, 'Which profile would you like to assign?', {onlyShowToCreator: true, components})
     } catch(err){
-        console.log(err);
-        return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
+       console.log(err);
+       return await respondWithComponentMessage(res, 'Something went wrong. Try again later or contact a mod.', {onlyShowToCreator: true});
     }
-    const components = [
-        {
-            type: 1,
-            components: [
-                {
-                  type: 6,
-                  custom_id: profile_name_dropdown,
-                  placeholder: "Choose a Profile"
-            }]
-      },
-  ];
-    return await respondWithComponentMessage(res, 'Which profile would you like to assign?', {onlyShowToCreator: true, components})
-}
-async function getTargetIdFromState(state, userId){
-    console.log('state for userId: ',state);
-    const latestState = state.pop();
-    if(latestState === undefined){
-        console.error('no state found for user: ', userId, ' when attempting to assign achievement');
-        return respondWithUpdateMessage(res, 'Something went wrong. Try again later or contact a mod.');
-    }
-    await removeMemberCommandState(userId)
-    return latestState.targetId;
 }
