@@ -16,7 +16,9 @@
         "remove-achievement": "node ./roles/deleteUserAchievement.js",
         "mongo": "node mongo.js",
         "dev": "nodemon app.js",
-        "test": "jasmine"
+        "test": "jasmine",
+        "build:css": "postcss ./public/src/input.css -o ./public/dist/output.css",
+        "watch:css": "postcss ./public/src/input.css -o ./public/dist/output.css --watch"
     },
     "author": "Casey Crocamo",
     "license": "MIT",
@@ -30,7 +32,11 @@
     },
     "devDependencies": {
         "@flydotio/dockerfile": "^0.5.7",
+        "@tailwindcss/postcss": "^4.3.3",
         "jasmine": "^5.1.0",
-        "nodemon": "^2.0.15"
+        "nodemon": "^2.0.15",
+        "postcss": "^8.5.25",
+        "postcss-cli": "^11.0.1",
+        "tailwindcss": "^4.3.3"
     }
 }

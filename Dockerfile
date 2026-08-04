@@ -27,6 +27,9 @@ RUN npm ci
 # Copy application code
 COPY --link . .
 
+# Build Tailwind CSS
+RUN npm run build:css
+
 
 # Final stage for app image
 FROM base

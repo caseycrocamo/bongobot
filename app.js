@@ -7,6 +7,7 @@ import { handleTimestampCommand } from './timezones/timezonehandler.js';
 import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handleProfileUpdate, respondWithAchievementChoices, handleGrantAchievementCommand, handleGrantAchievementCategorySelect, handleSetProfileCommand, handleSetProfile, respondWithProfessionChoices, respondWithCraftingChoices, handleHelpCommand  } from './roles/profilehandler.js';
 import { ackInteraction, respondWithDeferMessage } from './discordresponsehelper.js';
 import { handleAchievementsCommand } from './roles/achievementHandler.js';
+import dashboardRouter from './routes/dashboard.js';
 
 // Create an express app
 const app = express();
@@ -14,9 +15,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 // Parse request body and verifies incoming requests using discord-interactions package
 app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
-app.get('/', async function(_, res) {
+app.get('/health', async function(_, res) {
   return res.send('IM ALIVE. STOP POKING ME.');
 });
+app.use(express.static('public'));
+app.use(dashboardRouter);
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
  */
