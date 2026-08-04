@@ -20,9 +20,10 @@ FROM base as build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
-# Install node modules
+# Install node modules (--include=dev overrides NODE_ENV=production so the
+# Tailwind build below has postcss/tailwindcss available)
 COPY --link package-lock.json package.json ./
-RUN npm ci
+RUN npm ci --include=dev
 
 # Copy application code
 COPY --link . .
