@@ -9,7 +9,6 @@
 
   const els = {
     statAchievements: document.getElementById('stat-achievements'),
-    statRoles: document.getElementById('stat-roles'),
 
     categoryFilter: document.getElementById('category-filter'),
 
@@ -18,11 +17,6 @@
     achievementsEmpty: document.getElementById('achievements-empty'),
     achievementsTableWrapper: document.getElementById('achievements-table-wrapper'),
     achievementsTableBody: document.getElementById('achievements-table-body'),
-
-    rolesLoading: document.getElementById('roles-loading'),
-    rolesError: document.getElementById('roles-error'),
-    rolesEmpty: document.getElementById('roles-empty'),
-    rolesList: document.getElementById('roles-list'),
   };
 
   function showAchievementsState(name) {
@@ -30,13 +24,6 @@
     els.achievementsError.classList.toggle('hidden', name !== 'error');
     els.achievementsEmpty.classList.toggle('hidden', name !== 'empty');
     els.achievementsTableWrapper.classList.toggle('hidden', name !== 'data');
-  }
-
-  function showRolesState(name) {
-    els.rolesLoading.classList.toggle('hidden', name !== 'loading');
-    els.rolesError.classList.toggle('hidden', name !== 'error');
-    els.rolesEmpty.classList.toggle('hidden', name !== 'empty');
-    els.rolesList.classList.toggle('hidden', name !== 'data');
   }
 
   function renderRolePill(discordRole) {
@@ -132,37 +119,8 @@
     els.categoryFilter.append(...options);
   }
 
-  function renderRoleRow(role) {
-    const li = document.createElement('li');
-    li.className = 'relative flex items-center justify-between gap-x-4 py-4';
-
-    const left = document.createElement('div');
-    left.className = 'min-w-0 flex-auto';
-    const heading = document.createElement('p');
-    heading.className = 'text-sm/6 font-semibold text-gray-900 dark:text-white';
-    heading.textContent = role.name;
-    left.appendChild(heading);
-    li.appendChild(left);
-
-    const pill = document.createElement('span');
-    pill.className = 'inline-flex flex-none items-center rounded-full px-2 py-1 text-xs font-medium';
-    pill.style.backgroundColor = `${role.color}22`;
-    pill.style.color = role.color;
-    pill.textContent = role.color;
-    li.appendChild(pill);
-
-    return li;
-  }
-
-  function renderRoles(roles) {
-    els.rolesList.replaceChildren(...roles.map(renderRoleRow));
-    els.statRoles.textContent = String(roles.length);
-    showRolesState(roles.length === 0 ? 'empty' : 'data');
-  }
-
   async function load() {
     showAchievementsState('loading');
-    showRolesState('loading');
     try {
       const res = await fetch(`/api/achievements-and-roles?page=1&pageSize=${PAGE_SIZE}`);
       if (!res.ok) {
@@ -176,14 +134,10 @@
       state.categoryOrder = categories || [];
       populateCategoryFilter(state.categoryOrder);
       renderAchievements();
-
-      renderRoles(data.roles || []);
     } catch (err) {
       console.error('Failed to load achievements and roles', err);
       els.achievementsError.textContent = 'Failed to load achievements. Please try again later.';
       showAchievementsState('error');
-      els.rolesError.textContent = 'Failed to load roles.';
-      showRolesState('error');
     }
   }
 
