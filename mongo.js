@@ -34,9 +34,6 @@ async function insertOne(collection, doc){
     } catch {
         console.error(`Issue inserting into ${collection}`);
     }
-    finally {
-        await client.close();
-    }
 }
 async function updateOne(collection, filter, updateDocument){
     try{
@@ -47,9 +44,6 @@ async function updateOne(collection, filter, updateDocument){
         return result.modifiedCount;
     } catch {
         console.error(`Issue updating item in ${collection}`);
-    }
-    finally {
-        await client.close();
     }
 }
 async function getFromCollection(collection, query){
@@ -62,11 +56,8 @@ async function getFromCollection(collection, query){
     } catch {
         console.error(`Issue getting from ${collection}`);
     }
-    finally {
-        await client.close();
-    }
 }
-async function removeFromCollection(collection, query){
+export async function removeFromCollection(collection, query){
     try{
         await client.connect();
         const db = client.db("BongoBot");
@@ -75,9 +66,6 @@ async function removeFromCollection(collection, query){
         return await deletionResponse.deletedCount;
     } catch {
         console.error(`Issue deleting from ${collection}`);
-    }
-    finally {
-        await client.close();
     }
 }
 async function deleteOne(collection, documentId){
@@ -91,9 +79,6 @@ async function deleteOne(collection, documentId){
         return deletionResponse.deletedCount;
     } catch {
         console.error(`Issue deleting from ${collection}`);
-    }
-    finally {
-        await client.close();
     }
 }
 export async function insertMemberRoleAssignment(userId, guildId, roleId){
@@ -167,6 +152,128 @@ export async function updateMemberApiKey(userId, apiKey){
     const result = await updateOne("MemberApiKey", filter, updateDocument);
     console.log('A MemberApiKey ',filter, `was updated`);
     return result;
+}
+
+export async function ensureManagedRoleIndexes(){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        await col.createIndex({ guildId: 1, custom_id: 1 }, { unique: true });
+    } catch {
+        console.error("Issue ensuring indexes on ManagedRole");
+    }
+}
+export async function insertManagedRole(doc){
+    await ensureManagedRoleIndexes();
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        const result = await col.insertOne(doc);
+        return result.insertedId;
+    } catch {
+        console.error("Issue inserting into ManagedRole");
+    }
+}
+export async function deleteManagedRole(id){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        const deletionResponse = await col.deleteOne({ _id: new ObjectId(id) });
+        return deletionResponse.deletedCount;
+    } catch {
+        console.error("Issue deleting from ManagedRole");
+    }
+}
+export async function upsertManagedRole(doc){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        const result = await col.updateOne(
+            { guildId: doc.guildId, custom_id: doc.custom_id },
+            { $set: doc },
+            { upsert: true }
+        );
+        return {
+            matchedCount: result.matchedCount,
+            modifiedCount: result.modifiedCount,
+            upsertedCount: result.upsertedCount || 0
+        };
+    } catch {
+        console.error("Issue upserting into ManagedRole");
+    }
+}
+export async function bulkUpsertManagedRoles(docs){
+    const summary = { matchedCount: 0, modifiedCount: 0, upsertedCount: 0 };
+    if (!Array.isArray(docs) || docs.length === 0) {
+        return summary;
+    }
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        const CHUNK_SIZE = 1000;
+        for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+            const chunk = docs.slice(i, i + CHUNK_SIZE);
+            const operations = chunk.map(doc => ({
+                updateOne: {
+                    filter: { guildId: doc.guildId, custom_id: doc.custom_id },
+                    update: { $set: doc },
+                    upsert: true
+                }
+            }));
+            const result = await col.bulkWrite(operations, { ordered: false });
+            summary.matchedCount += result.matchedCount || 0;
+            summary.modifiedCount += result.modifiedCount || 0;
+            summary.upsertedCount += result.upsertedCount || 0;
+        }
+        return summary;
+    } catch {
+        console.error("Issue bulk upserting into ManagedRole");
+    }
+}
+export async function getAllManagedRoles(guildId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        const projection = {
+            _id: 0,
+            type: 1,
+            short_name: 1,
+            description: 1,
+            category: 1,
+            custom_id: 1,
+            name: 1,
+            color: 1,
+            mentionable: 1,
+            icon: 1,
+            requirements: 1,
+            discordRoleId: 1
+        };
+        const cursor = await col.find({ guildId }, { projection });
+        return await cursor.toArray();
+    } catch {
+        console.error("Issue getting from ManagedRole");
+        return [];
+    }
+}
+export async function updateManagedRoleDiscordId(guildId, custom_id, discordRoleId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("ManagedRole");
+        const result = await col.updateOne(
+            { guildId, custom_id },
+            { $set: { discordRoleId } }
+        );
+        return result.modifiedCount;
+    } catch {
+        console.error("Issue updating discordRoleId in ManagedRole");
+    }
 }
 
 await ping();

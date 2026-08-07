@@ -157,6 +157,43 @@ npm run register-global-commands
 
 Command registration is idempotent — POSTing a command with the same name and type updates the existing registration.
 
+## Role Catalog (MongoDB-backed)
+
+Role **definitions** (achievement, profession, crafting) live in MongoDB in the `ManagedRole`
+collection — **not** in code. The running app reads them through the in-memory cache in
+`roles/effectiveCatalog.js` (60s TTL, keeps last-known-good on transient DB errors). The old static
+modules (`roles/achievementRoles.js`, etc.) were removed; their data now lives in the seed migration.
+
+**Bootstrap order for a fresh DB/guild (required):**
+
+```bash
+npm run migrate:roles:up   # idempotent upsert of the baseline catalog into ManagedRole
+npm run register-roles     # creates any missing Discord roles from ManagedRole, writes back discordRoleId
+```
+
+- `migrate:roles:up` is idempotent (upsert by `{ guildId, custom_id }`) — safe to re-run; it rebuilds the
+  baseline after a wipe. Seed data lives in `migrations/seed-data/` (self-contained copies of the old
+  static modules). `migrate:roles:down` removes `source: 'migration'` rows.
+- With static config gone, an **empty/unreachable DB on cold start yields an empty catalog** until the
+  migration runs — so the migration is a required deploy step.
+- New roles can also be created at runtime via the admin dashboard (`POST /api/admin/roles`, guarded by
+  `requireAdminSecret`), which persists to `ManagedRole` **and** creates the live Discord role.
+
+## Admin API auth
+
+`POST /api/admin/roles` is guarded by `requireAdminSecret` (`routes/adminAuth.js`): constant-time compare
+of the `x-admin-secret` header (or `Authorization: Bearer`) against `process.env.ADMIN_SECRET`. The write
+path is **inert unless `ADMIN_SECRET` is set** (unset → 401). Set it in `.env` locally / Fly secrets in prod.
+The Discord signature `verify` hook is scoped to `/interactions` only (`app.js`); all other routes use a
+plain JSON parser so the admin POST is not rejected as an unsigned Discord request.
+
+**Dashboard login gate:** the whole dashboard sits behind an admin sign-in screen. `GET /api/admin/session`
+(also guarded by `requireAdminSecret`) is a side-effect-free check the login page calls to validate the
+secret. On success the client stores the secret in `localStorage` with a **15-day expiry** and does not
+prompt again until it lapses; admin requests (create / session) that return `401` clear the stored secret
+and bounce back to the login screen. The read-only `GET /api/achievements-and-roles` is not auth-gated
+server-side — the login gate is a UI gate.
+
 ## Permission Bitfields
 
 Common Discord permission bits:
@@ -174,5 +211,14 @@ Common Discord permission bits:
 - `commands/installglobal.js` — Global command registration
 - `app.js` — Interaction router (PING, APPLICATION_COMMAND, MESSAGE_COMPONENT, MODAL_SUBMIT)
 - `roles/profilehandler.js` — Command handlers and secondary authorization checks
+- `roles/effectiveCatalog.js` — DB-backed, cached role catalog (single read path for all consumers)
+- `roles/catalogUtils.js` — pure helpers (color/slug/name) shared by the catalog, dashboard, and admin route
+- `roles/categoryOrder.js` — achievement category display order (presentation config)
+- `roles/installroles.js` — creates missing Discord roles from `ManagedRole` (`npm run register-roles`)
+- `routes/dashboard.js` — read-only dashboard API (`GET /api/achievements-and-roles`)
+- `routes/adminRoles.js` — admin create-role API (`POST /api/admin/roles`)
+- `routes/adminAuth.js` — `requireAdminSecret` middleware
+- `migrations/001-seed-roles.up.js` / `.down.js` — seed/unseed the `ManagedRole` catalog
+- `migrations/seed-data/` — self-contained baseline role data (seed source only; not imported by the app)
 - `discordresponsehelper.js` — Response helpers (`respondWithModal`, `respondWithComponentMessage`, `generateFlags`, etc.)
-- `customids.js` — All `custom_id` constants for components and modals
+- `customids.js` — Flow-control `custom_id` constants (role `custom_id`s now live in `ManagedRole`)

@@ -44,3 +44,15 @@ View and earn achievements that you can show off on your profile!
 `achievement`: Select the role of the achievement you wish to achieve. You can start typing to "search" and filter the displayed discord roles. This param allows you to select from EVERY role in the discord server. However, you must select a role that corresponds to a BongoBot achievement for the command to word.
 
 `proof` (optional): Provide a link to some proof that you achieved this achievement. Only text is supported, links count! :sparkles: The gold standard for proof is a log from https://dps.report :sparkles:
+
+## Admin Dashboard
+
+The web dashboard (served from `public/`) lists all achievements & roles and lets an admin **add a new managed role** without a code deploy. Click **Add role** to open the form, pick a type (achievement / profession / crafting), fill in the details, and save. Saving creates the live Discord role, stores its definition in MongoDB, and makes it immediately available on the dashboard and in the `/profile` and Grant-Achievement flows.
+
+- **Sign in:** the dashboard opens on an admin sign-in screen. Enter the `ADMIN_SECRET` once to unlock it; the browser remembers you for **15 days** before asking again. The feature is disabled unless `ADMIN_SECRET` is configured on the server.
+- **Role catalog is data, not code.** Role definitions live in MongoDB (`ManagedRole`). For a fresh database, seed the baseline catalog and register the Discord roles once:
+
+  ```bash
+  npm run migrate:roles:up   # seed the baseline role catalog into MongoDB (idempotent)
+  npm run register-roles     # create the corresponding Discord roles
+  ```

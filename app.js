@@ -8,13 +8,19 @@ import { handleProfileCommand, handleAssignAchievement, handleRemoveRole, handle
 import { ackInteraction, respondWithDeferMessage } from './discordresponsehelper.js';
 import { handleAchievementsCommand } from './roles/achievementHandler.js';
 import dashboardRouter from './routes/dashboard.js';
+import adminRolesRouter from './routes/adminRoles.js';
 
 // Create an express app
 const app = express();
 // Get port, or default to 3000
 const PORT = process.env.PORT || 3000;
-// Parse request body and verifies incoming requests using discord-interactions package
-app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
+// Parse request body and verifies incoming requests using discord-interactions package.
+// The verify hook is scoped to /interactions only; everything else uses a plain JSON parser.
+app.post('/interactions', express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }), handleInteractions);
+// Admin API mounts its own JSON parser (1mb, for base64 icon uploads) before the
+// global 100kb parser below would otherwise reject large bodies.
+app.use(adminRolesRouter);
+app.use(express.json()); // plain parser for dashboard + health
 app.get('/health', async function(_, res) {
   return res.send('IM ALIVE. STOP POKING ME.');
 });
@@ -23,7 +29,7 @@ app.use(dashboardRouter);
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
  */
-app.post('/interactions', async function (req, res) {
+async function handleInteractions(req, res) {
   // Interaction type and data
   const { type, data, member, guild_id, token } = req.body;
 
@@ -103,7 +109,7 @@ app.post('/interactions', async function (req, res) {
         return ackInteraction(res);
     }
   }
-});
+}
 
 app.listen(PORT, () => {
   console.log('Listening on port', PORT);

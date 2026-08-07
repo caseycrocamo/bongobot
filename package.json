@@ -18,7 +18,9 @@
         "dev": "nodemon app.js",
         "test": "jasmine",
         "build:css": "postcss ./public/src/input.css -o ./public/dist/output.css",
-        "watch:css": "postcss ./public/src/input.css -o ./public/dist/output.css --watch"
+        "watch:css": "postcss ./public/src/input.css -o ./public/dist/output.css --watch",
+        "migrate:roles:up": "node ./migrations/001-seed-roles.up.js",
+        "migrate:roles:down": "node ./migrations/001-seed-roles.down.js"
     },
     "author": "Casey Crocamo",
     "license": "MIT",

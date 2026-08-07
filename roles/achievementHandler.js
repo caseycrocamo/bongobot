@@ -1,9 +1,9 @@
 import { GetGuildRoles } from "../discordclient.js";
 import { respondWithCommandNotImplemented, respondWithComponentMessage, updateChannelMessageAfterDefer, respondWithDeferMessage } from "../discordresponsehelper.js";
 import { insertMemberAchievement } from "../mongo.js";
-import { ACHIEVEMENT_ROLES } from "./achievementRoles.js";
 import { getUsersAchievements, isCustomIdAchievementRole } from "./achievements.js";
-import { CustomIdToRoleNameMap, RoleNameToCustomIdMap, getRoleIdByName, getRoleNameById } from "./roleutils.js";
+import { getRoleIdByName, getRoleNameById } from "./roleutils.js";
+import { getAchievementDefs, getRoleNameByCustomId, getCustomIdByRoleName } from "./effectiveCatalog.js";
 
 async function handleViewAchievements(interactionToken, userId, guildId){
     try{
@@ -13,7 +13,8 @@ async function handleViewAchievements(interactionToken, userId, guildId){
             console.warn('Expected guild roles array but got:', roles, 'for guild', guildId);
         }
         const missingAchievementRoles = [];
-        const allAchievements = ACHIEVEMENT_ROLES.map((achievement) => {
+        const achievementDefs = await getAchievementDefs();
+        const allAchievements = achievementDefs.map((achievement) => {
             const userAchievementIndex = userAchievements?.findIndex((customId) => achievement.custom_id === customId);
             achievement.userEarned =  userAchievementIndex >= 0;
             const roleId = getRoleIdByName(roles, achievement.name);
@@ -57,18 +58,19 @@ async function handleViewAchievements(interactionToken, userId, guildId){
 async function handleAchieve(interactionToken, userId, guildId, achievement, proof){
     try{
         const customId = await getCustomIdFromRoleId(guildId, achievement);
-        if(!isCustomIdAchievementRole(customId)){
+        if(!(await isCustomIdAchievementRole(customId))){
             console.log(customId, 'does not correspond to an achievement role. returning a message to the user', userId);
             return updateChannelMessageAfterDefer(interactionToken, `<@&${achievement}> is not an achievement, please choose a different role.`, {onlyShowToCreator: true});
         }
-        const roleName = CustomIdToRoleNameMap[customId];
+        const roleName = await getRoleNameByCustomId(customId);
         const achievements = await getUsersAchievements(userId, guildId);
         const userHasAchievement = achievements.findIndex(achievement => achievement === customId) !== -1;
         console.log('user', userId, 'is achieving', customId);
         if(userHasAchievement){
             return updateChannelMessageAfterDefer(interactionToken, `You have already achieved ${roleName}\n Use the \`/profile\` command to show off your favorite achievement with a matching name color and badge`, {onlyShowToCreator: true});
         }
-        const requirements = ACHIEVEMENT_ROLES.find(achievement => achievement.custom_id === customId)?.requirements;
+        const achievementDefs = await getAchievementDefs();
+        const requirements = achievementDefs.find(a => a.custom_id === customId)?.requirements;
         if(requirements && requirements.length > 0){
             for(let requirement in requirements){
                 if(achievements.findIndex(achievement => achievement === requirement) === -1) {
@@ -114,7 +116,7 @@ export async function getCustomIdFromRoleId(guildId, achievement){
     if(!roleName){
         console.warn('Could not find role name for role ID', achievement, 'in guild', guildId);
     }
-    const customId = RoleNameToCustomIdMap[roleName];
+    const customId = await getCustomIdByRoleName(roleName);
     if(roleName && !customId){
         console.warn('No managed custom ID mapping for role name', roleName, 'in guild', guildId);
     }

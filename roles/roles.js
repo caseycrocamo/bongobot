@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { GetGuildRoles, InstallGuildRole, ModifyGuildRolePosition, ModifyMember } from "../discordclient.js";
 import { getMemberRole, insertMemberRoleAssignment, removeMemberRole, updateMemberRoleAssignment } from '../mongo.js';
-import { CustomIdToRoleNameMap, getRoleIdByName } from './roleutils.js';
+import { getRoleIdByName } from './roleutils.js';
+import { getRoleNameByCustomId } from './effectiveCatalog.js';
 
 
 export async function AddGuildRoles(roleList){
@@ -47,7 +48,7 @@ export async function removeUsersCurrentRole(member, guildId){
 }
 
 export async function setUsersActiveRoleFromCustomId(member, guildId, customId){
-    let roleName = CustomIdToRoleNameMap[customId];
+    const roleName = await getRoleNameByCustomId(customId);
     console.log(`setting user ${member.user.id} active role to "${roleName}" in guild ${guildId}`);
     const allRoles = await GetGuildRoles(guildId);
     const newRoleId = getRoleIdByName(allRoles, roleName);
@@ -82,4 +83,17 @@ export async function setUsersActiveRole(member, guildId, roleId){
 }
 export function isRoleIdManagedRole(roleId){
 
+}
+
+export async function createAndPositionRole(role){
+    const created = await InstallGuildRole(process.env.GUILD_ID, role);
+    if(!created || !created.id){
+        return created; // falsy / missing id => caller treats as failure
+    }
+    const currentRoles = await GetGuildRoles(process.env.GUILD_ID);
+    const highestPosition = Array.isArray(currentRoles)
+        ? currentRoles.reduce((acc, r) => (r.position > acc ? r.position : acc), 0)
+        : 1;
+    await ModifyGuildRolePosition(process.env.GUILD_ID, [{ id: created.id, position: Math.max(highestPosition - 1, 1) }]);
+    return created;
 }

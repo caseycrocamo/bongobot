@@ -7,7 +7,27 @@
   <link rel="stylesheet" href="/dist/output.css" />
 </head>
 <body class="h-full bg-white dark:bg-gray-900">
-  <div class="min-h-full">
+  <!-- Admin login gate -->
+  <div id="login-screen" class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+      <h1 class="text-center text-2xl font-bold tracking-tight text-gray-900 dark:text-white">BongoBot</h1>
+      <h2 class="mt-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">Admin sign-in</h2>
+    </div>
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-sm">
+      <form id="login-form" novalidate class="space-y-6">
+        <div>
+          <label for="login-secret" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Admin secret</label>
+          <div class="mt-2">
+            <input type="password" id="login-secret" autocomplete="current-password" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500" placeholder="Enter admin secret" />
+          </div>
+          <p id="login-error" class="hidden mt-2 text-sm text-red-600 dark:text-red-400"></p>
+        </div>
+        <button id="login-submit" type="submit" class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-shell" class="hidden min-h-full">
     <nav class="border-b border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center">
@@ -18,8 +38,14 @@
 
     <div class="py-10">
       <header>
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Achievements &amp; Roles</h1>
+          <button id="add-role-button" type="button" class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">
+            <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="-ml-0.5 size-5">
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+            </svg>
+            Add role
+          </button>
         </div>
       </header>
       <main>
@@ -85,6 +111,169 @@
     <footer class="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-gray-500 sm:px-6 lg:px-8 dark:text-gray-400">
       &copy; BongoBot
     </footer>
+  </div>
+
+  <!-- Add role slide-over -->
+  <div id="role-drawer" class="hidden fixed inset-0 z-50">
+    <div id="role-drawer-backdrop" class="absolute inset-0 bg-gray-500/75 transition-opacity dark:bg-gray-900/80"></div>
+    <div class="fixed inset-y-0 right-0 flex max-w-full pl-10">
+      <div id="role-drawer-panel" class="flex h-full w-screen max-w-md translate-x-full flex-col bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-gray-900 dark:inset-ring dark:inset-ring-white/10">
+        <!-- Header -->
+        <div class="flex items-center justify-between bg-indigo-600 px-4 py-6 sm:px-6 dark:bg-indigo-500">
+          <div>
+            <h2 class="text-base font-semibold text-white">Add a role</h2>
+            <p class="mt-1 text-sm text-indigo-200">Create a new achievement, profession, or crafting role.</p>
+          </div>
+          <button id="role-drawer-close" type="button" class="relative rounded-md text-indigo-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+            <span class="sr-only">Close panel</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="size-6">
+              <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="relative flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+          <!-- Request-level alert -->
+          <div id="role-alert" class="hidden mb-6 rounded-md bg-red-50 p-4 dark:bg-red-500/10 dark:inset-ring dark:inset-ring-red-500/20">
+            <div class="flex items-start">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5 shrink-0 text-red-400 dark:text-red-400">
+                <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" fill-rule="evenodd" />
+              </svg>
+              <div class="ml-3 flex-1">
+                <p id="role-alert-message" class="text-sm font-medium text-red-800 dark:text-red-200"></p>
+              </div>
+              <button id="role-alert-dismiss" type="button" class="ml-3 shrink-0 rounded-md text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                <span class="sr-only">Dismiss</span>
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <form id="role-form" novalidate class="space-y-6">
+            <!-- Type -->
+            <div>
+              <label for="role-type" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Type</label>
+              <div class="mt-2 grid grid-cols-1">
+                <select id="role-type" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus-visible:outline-indigo-500">
+                  <option value="achievement">Achievement</option>
+                  <option value="profession">Profession</option>
+                  <option value="crafting">Crafting</option>
+                </select>
+                <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-4 self-center justify-self-end text-gray-500 dark:text-gray-400">
+                  <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Short name -->
+            <div>
+              <label for="role-short-name" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Short name</label>
+              <div class="mt-2">
+                <input type="text" id="role-short-name" maxlength="80" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500" placeholder="e.g. Blacksmith" />
+              </div>
+              <p id="role-short-name-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+
+            <!-- Description -->
+            <div id="role-description-field">
+              <label for="role-description" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Description</label>
+              <div class="mt-2">
+                <textarea id="role-description" rows="3" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500" placeholder="What is this role for?"></textarea>
+              </div>
+              <p id="role-description-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+
+            <!-- Category -->
+            <div id="role-category-field">
+              <label for="role-category" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Category</label>
+              <div class="mt-2 grid grid-cols-1">
+                <select id="role-category" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus-visible:outline-indigo-500">
+                  <option value="">Select a category&hellip;</option>
+                </select>
+                <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-4 self-center justify-self-end text-gray-500 dark:text-gray-400">
+                  <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
+              </div>
+              <p id="role-category-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+
+            <!-- Color -->
+            <div>
+              <label for="role-color" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Color</label>
+              <div class="mt-2 flex items-center gap-x-3">
+                <input type="color" id="role-color" value="#5865f2" class="size-9 shrink-0 cursor-pointer rounded-md border-0 bg-transparent p-0 outline-1 -outline-offset-1 outline-gray-300 dark:outline-white/10" />
+                <span id="role-color-value" class="text-sm text-gray-500 dark:text-gray-400">#5865f2</span>
+              </div>
+            </div>
+
+            <!-- Mentionable -->
+            <div class="flex items-center gap-x-3">
+              <div class="flex h-6 shrink-0 items-center">
+                <div class="group grid size-4 grid-cols-1">
+                  <input type="checkbox" id="role-mentionable" checked class="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 bg-white checked:border-indigo-600 checked:bg-indigo-600 indeterminate:border-indigo-600 indeterminate:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500" />
+                  <svg viewBox="0 0 14 14" fill="none" class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:checked]:opacity-100 opacity-0">
+                    <path d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </div>
+              <label for="role-mentionable" class="text-sm/6 font-medium text-gray-900 dark:text-white">Mentionable</label>
+            </div>
+
+            <!-- Icon source -->
+            <fieldset id="role-icon-field">
+              <legend class="text-sm/6 font-medium text-gray-900 dark:text-white">Icon</legend>
+              <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                <div class="flex items-center gap-x-2">
+                  <input type="radio" name="role-icon-source" id="role-icon-none" value="none" checked class="size-4 appearance-none rounded-full border border-gray-300 bg-white before:invisible before:m-auto before:size-1.5 before:rounded-full before:bg-white checked:border-indigo-600 checked:bg-indigo-600 checked:before:visible focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500 flex" />
+                  <label for="role-icon-none" class="text-sm/6 text-gray-900 dark:text-white">None</label>
+                </div>
+                <div class="flex items-center gap-x-2">
+                  <input type="radio" name="role-icon-source" id="role-icon-upload" value="upload" class="size-4 appearance-none rounded-full border border-gray-300 bg-white before:invisible before:m-auto before:size-1.5 before:rounded-full before:bg-white checked:border-indigo-600 checked:bg-indigo-600 checked:before:visible focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500 flex" />
+                  <label for="role-icon-upload" class="text-sm/6 text-gray-900 dark:text-white">Upload</label>
+                </div>
+                <div class="flex items-center gap-x-2">
+                  <input type="radio" name="role-icon-source" id="role-icon-urlopt" value="url" class="size-4 appearance-none rounded-full border border-gray-300 bg-white before:invisible before:m-auto before:size-1.5 before:rounded-full before:bg-white checked:border-indigo-600 checked:bg-indigo-600 checked:before:visible focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-white/10 dark:bg-white/5 dark:checked:border-indigo-500 dark:checked:bg-indigo-500 dark:focus-visible:outline-indigo-500 flex" />
+                  <label for="role-icon-urlopt" class="text-sm/6 text-gray-900 dark:text-white">URL</label>
+                </div>
+              </div>
+
+              <!-- Icon file -->
+              <div id="role-icon-file-control" class="hidden mt-3">
+                <input type="file" id="role-icon-file" accept="image/png,image/jpeg" class="block w-full text-sm text-gray-900 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-500 dark:text-white dark:file:bg-indigo-500 dark:hover:file:bg-indigo-400" />
+                <p id="role-icon-file-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+              </div>
+
+              <!-- Icon URL -->
+              <div id="role-icon-url-control" class="hidden mt-3">
+                <input type="url" id="role-icon-url" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500" placeholder="https://example.com/icon.png" />
+                <p id="role-icon-url-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex shrink-0 justify-end gap-x-3 border-t border-gray-200 px-4 py-4 dark:border-white/10">
+          <button id="role-cancel" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 inset-ring inset-ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:inset-ring-white/10 dark:hover:bg-white/20">Cancel</button>
+          <button id="role-save" type="submit" form="role-form" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success toast -->
+  <div id="role-toast" class="hidden fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:justify-end sm:px-6">
+    <div class="pointer-events-auto w-full max-w-sm rounded-lg bg-white shadow-lg outline outline-black/5 dark:bg-gray-800 dark:outline-white/10">
+      <div class="flex items-start gap-3 p-4">
+        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5 shrink-0 text-green-500">
+          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
+        </svg>
+        <p id="role-toast-message" class="flex-1 text-sm font-medium text-gray-900 dark:text-white"></p>
+      </div>
+    </div>
   </div>
 
   <script src="/app.js" defer></script>

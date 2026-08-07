@@ -1,18 +1,17 @@
 import 'dotenv/config';
 import { GetGuildRoles, GetMember, UpdateInteractionResponse } from '../discordclient.js';
 import { removeUsersCurrentRole, setUsersActiveRole, setUsersActiveRoleFromCustomId } from '../roles/roles.js';
-import { achievement_name_dropdown, grant_achievement_category_dropdown, choose_achievement, choose_crafting, choose_profession, elementalistenjoyer, engineerenjoyer, grimreaper, guardianenjoyer, heroicjpracer, mesmerenjoyer, necromancerenjoyer, profile_choice_dropdown, profile_name_dropdown, rangerenjoyer, reigningjpchamp, remove_all, revenantenjoyer, thiefenjoyer, warriorenjoyer, wildcard } from '../customids.js';
+import { achievement_name_dropdown, grant_achievement_category_dropdown, choose_achievement, choose_crafting, choose_profession, profile_choice_dropdown, profile_name_dropdown, remove_all } from '../customids.js';
 import { getMemberAchievement, insertMemberAchievement } from '../mongo.js';
 import { getUsersAchievements } from '../roles/achievements.js';
-import { ACHIEVEMENT_ROLES, ACHIEVEMENT_CATEGORIES } from '../roles/achievementRoles.js';
+import { getAchievementDefs, getProfessionDefs, getCraftingDefs, getAchievementCategories } from './effectiveCatalog.js';
 import { memberCanManageRoles } from '../member.js';
-import { PROFESSION_ROLES } from '../roles/professionRoles.js';
 import { respondWithComponentMessage, respondWithUpdateMessage, respondWithCommandNotImplemented, respondWithDeferMessage, respondWithDeferUpdate, updateChannelMessageAfterDefer } from '../discordresponsehelper.js';
-import { CRAFTING_ROLES } from './craftingRoles.js';
 import { getCustomIdFromRoleId } from './achievementHandler.js';
-export function respondWithCraftingChoices(res){
+export async function respondWithCraftingChoices(res){
   const message = 'Show off your crafting prowess with a shiny new name color and crafting icon! Pick a discipline:';
-  const options = CRAFTING_ROLES.map((role) => {
+  const defs = await getCraftingDefs();
+  const options = defs.map((role) => {
     return {
         type: 2,
         label: role.short_name,
@@ -28,79 +27,19 @@ export function respondWithCraftingChoices(res){
   ];
   return respondWithUpdateMessage(res, message, {components, onlyShowToCreator: true});
 }
-export function respondWithProfessionChoices(res){
+export async function respondWithProfessionChoices(res){
   const message = 'Show off your favorite profession with a shiny new name color and profession icon! Pick a profession:';
-  const components = [
-    {
-      type: 1,
-      components: [
-          {
-              type: 2,
-              label: "Elementalist",
-              style: 1,
-              custom_id: elementalistenjoyer
-          },
-          {
-              type: 2,
-              label: "Mesmer",
-              style: 1,
-              custom_id: mesmerenjoyer
-          },
-          {
-              type: 2,
-              label: "Necromancer",
-              style: 1,
-              custom_id: necromancerenjoyer
-          },
-      ]
-    },
-    {
-      type: 1,
-      components: [
-          {
-              type: 2,
-              label: "Engineer",
-              style: 1,
-              custom_id: engineerenjoyer
-          },
-          {
-              type: 2,
-              label: "Ranger",
-              style: 1,
-              custom_id: rangerenjoyer
-          },
-          {
-              type: 2,
-              label: "Thief",
-              style: 1,
-              custom_id: thiefenjoyer
-          },
-      ]
-    },
-    {
-      type: 1,
-      components: [
-          {
-              type: 2,
-              label: "Guardian",
-              style: 1,
-              custom_id: guardianenjoyer
-          },
-          {
-              type: 2,
-              label: "Revenant",
-              style: 1,
-              custom_id: revenantenjoyer
-          },
-          {
-              type: 2,
-              label: "Warrior",
-              style: 1,
-              custom_id: warriorenjoyer
-          },
-      ]
-    }
-  ];
+  const defs = await getProfessionDefs();
+  const components = [];
+  for(let i = 0; i < defs.length; i += 3){
+    const chunk = defs.slice(i, i + 3).map((def) => ({
+      type: 2,
+      label: def.short_name.replace(/\s+Enjoyer$/, ''),
+      style: 1,
+      custom_id: def.custom_id
+    }));
+    components.push({ type: 1, components: chunk });
+  }
   return respondWithUpdateMessage(res, message, {components, onlyShowToCreator: true});
 }
 export function handleHelpCommand(res){
@@ -216,22 +155,22 @@ export async function handleProfileUpdate(res, member, guild_id, role, interacti
 
 export async function respondWithAchievementChoices(res, userId, guildId){
     try{
-        const achievementRolesMap = {};
-        ACHIEVEMENT_ROLES.map((achievementRole) => achievementRolesMap[achievementRole.custom_id] = achievementRole.short_name);
+        const achievementDefs = await getAchievementDefs();
         const userAchievements = await getUsersAchievements(userId, guildId);
         const message = 'Which achievement would you like to show off? It will set the color of your name and your badge in this server.'
-        let options = [
+        const wildcardDef = achievementDefs.find(d => d.custom_id === 'wildcard');
+        let options = wildcardDef ? [
             {
-                label: "Wild Card",
-                value: wildcard,
-                description: "Has every profession at 80 and a new main every week."
+                label: wildcardDef.short_name,
+                value: wildcardDef.custom_id,
+                description: wildcardDef.description
             },
-        ];
+        ] : [];
         if(userAchievements && userAchievements.length > 0){
             console.log('found user achievements. Adding them to the achievement choices. Achievements: ', userAchievements);
-            userAchievements.map((customId) => 
+            userAchievements.map((customId) =>
             {
-                const achievement = ACHIEVEMENT_ROLES.find(role => role.custom_id === customId);
+                const achievement = achievementDefs.find(role => role.custom_id === customId);
                 options.push(
                 {
                     label: achievement.short_name,
@@ -268,7 +207,10 @@ export async function handleGrantAchievementCommand(res, callingMember, target_i
             console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
             return await respondWithComponentMessage(res, 'You don\'t have permission to perform this action. You must be able to Manage Roles in this server.', {onlyShowToCreator: true});
         }
-        const categoryOptions = ACHIEVEMENT_CATEGORIES.map(cat => ({
+        const achievementDefs = await getAchievementDefs();
+        const order = await getAchievementCategories();
+        const categories = order.map(name => ({ name, achievements: achievementDefs.filter(d => d.category === name) })).filter(c => c.achievements.length > 0);
+        const categoryOptions = categories.map(cat => ({
             label: cat.name,
             value: cat.name,
             description: `${cat.achievements.length} achievement${cat.achievements.length !== 1 ? 's' : ''}`
@@ -300,11 +242,12 @@ export async function handleGrantAchievementCategorySelect(res, callingMember, g
             console.warn('User ', callingMember.user.id, " does not have permission to grant achievements.");
             return await respondWithUpdateMessage(res, 'You don\'t have permission to perform this action.', {onlyShowToCreator: true});
         }
-        const category = ACHIEVEMENT_CATEGORIES.find(c => c.name === selectedCategory);
-        if(!category){
+        const achievementDefs = await getAchievementDefs();
+        const categoryAchievements = achievementDefs.filter(d => d.category === selectedCategory);
+        if(categoryAchievements.length === 0){
             return await respondWithUpdateMessage(res, `Unknown category: ${selectedCategory}`, {onlyShowToCreator: true});
         }
-        const options = category.achievements.map(achievement => ({
+        const options = categoryAchievements.map(achievement => ({
             label: achievement.short_name,
             value: achievement.custom_id,
             description: achievement.description

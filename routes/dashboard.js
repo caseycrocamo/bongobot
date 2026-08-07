@@ -11,6 +11,8 @@ const ROLES_CACHE_TTL_MS = 60 * 1000;
 
 let rolesCache = { data: null, expiresAt: 0 };
 
+export function invalidateRolesCache(){ rolesCache = { data: null, expiresAt: 0 }; }
+
 function toHexColor(color) {
     return '#' + Number(color).toString(16).padStart(6, '0');
 }
@@ -39,7 +41,7 @@ async function getGuildRoles() {
         return normalized;
     } catch (err) {
         console.error('Failed to fetch live guild roles, falling back to static catalog', err);
-        return rolesForFallback();
+        return await rolesForFallback();
     }
 }
 
@@ -56,8 +58,8 @@ router.get('/api/achievements-and-roles', async (req, res) => {
     const pageSize = Math.min(parsePageParam(req.query.pageSize, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
 
     const roles = await getGuildRoles();
-    const achievements = getAchievementsPage(page, pageSize);
-    achievements.categories = getAchievementCategoryOrder();
+    const achievements = await getAchievementsPage(page, pageSize);
+    achievements.categories = await getAchievementCategoryOrder();
     achievements.items = achievements.items.map((item) => {
         const roleId = getRoleIdByName(roles, item.name);
         const discordRole = roleId ? roles.find((role) => role.id === roleId) : undefined;
