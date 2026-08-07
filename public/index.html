@@ -40,12 +40,26 @@
       <header>
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Achievements &amp; Roles</h1>
-          <button id="add-role-button" type="button" class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">
-            <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="-ml-0.5 size-5">
-              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-            </svg>
-            Add role
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="add-game-button" type="button" class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm inset-ring inset-ring-gray-300 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-white/10 dark:text-white dark:inset-ring-white/10 dark:hover:bg-white/20">
+              <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="-ml-0.5 size-5">
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              Add game
+            </button>
+            <button id="add-category-button" type="button" class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm inset-ring inset-ring-gray-300 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-white/10 dark:text-white dark:inset-ring-white/10 dark:hover:bg-white/20">
+              <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="-ml-0.5 size-5">
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              Add category
+            </button>
+            <button id="add-role-button" type="button" class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">
+              <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="-ml-0.5 size-5">
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              Add role
+            </button>
+          </div>
         </div>
       </header>
       <main>
@@ -259,6 +273,137 @@
         <div class="flex shrink-0 justify-end gap-x-3 border-t border-gray-200 px-4 py-4 dark:border-white/10">
           <button id="role-cancel" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 inset-ring inset-ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:inset-ring-white/10 dark:hover:bg-white/20">Cancel</button>
           <button id="role-save" type="submit" form="role-form" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add game slide-over -->
+  <div id="game-drawer" class="hidden fixed inset-0 z-50">
+    <div id="game-drawer-backdrop" class="absolute inset-0 bg-gray-500/75 transition-opacity dark:bg-gray-900/80"></div>
+    <div class="fixed inset-y-0 right-0 flex max-w-full pl-10">
+      <div id="game-drawer-panel" class="flex h-full w-screen max-w-md translate-x-full flex-col bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-gray-900 dark:inset-ring dark:inset-ring-white/10">
+        <!-- Header -->
+        <div class="flex items-center justify-between bg-indigo-600 px-4 py-6 sm:px-6 dark:bg-indigo-500">
+          <div>
+            <h2 class="text-base font-semibold text-white">Add a game</h2>
+            <p class="mt-1 text-sm text-indigo-200">Create a game that groups categories.</p>
+          </div>
+          <button id="game-drawer-close" type="button" class="relative rounded-md text-indigo-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+            <span class="sr-only">Close panel</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="size-6">
+              <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="relative flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+          <div id="game-alert" class="hidden mb-6 rounded-md bg-red-50 p-4 dark:bg-red-500/10 dark:inset-ring dark:inset-ring-red-500/20">
+            <div class="flex items-start">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5 shrink-0 text-red-400 dark:text-red-400">
+                <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" fill-rule="evenodd" />
+              </svg>
+              <div class="ml-3 flex-1">
+                <p id="game-alert-message" class="text-sm font-medium text-red-800 dark:text-red-200"></p>
+              </div>
+              <button id="game-alert-dismiss" type="button" class="ml-3 shrink-0 rounded-md text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                <span class="sr-only">Dismiss</span>
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <form id="game-form" novalidate class="space-y-6">
+            <div>
+              <label for="game-name" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Name</label>
+              <div class="mt-2">
+                <input type="text" id="game-name" maxlength="80" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500" placeholder="e.g. Guild Wars 2" />
+              </div>
+              <p id="game-name-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex shrink-0 justify-end gap-x-3 border-t border-gray-200 px-4 py-4 dark:border-white/10">
+          <button id="game-cancel" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 inset-ring inset-ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:inset-ring-white/10 dark:hover:bg-white/20">Cancel</button>
+          <button id="game-save" type="submit" form="game-form" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add category slide-over -->
+  <div id="category-drawer" class="hidden fixed inset-0 z-50">
+    <div id="category-drawer-backdrop" class="absolute inset-0 bg-gray-500/75 transition-opacity dark:bg-gray-900/80"></div>
+    <div class="fixed inset-y-0 right-0 flex max-w-full pl-10">
+      <div id="category-drawer-panel" class="flex h-full w-screen max-w-md translate-x-full flex-col bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-gray-900 dark:inset-ring dark:inset-ring-white/10">
+        <!-- Header -->
+        <div class="flex items-center justify-between bg-indigo-600 px-4 py-6 sm:px-6 dark:bg-indigo-500">
+          <div>
+            <h2 class="text-base font-semibold text-white">Add a category</h2>
+            <p class="mt-1 text-sm text-indigo-200">Create a category and assign it to a game.</p>
+          </div>
+          <button id="category-drawer-close" type="button" class="relative rounded-md text-indigo-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+            <span class="sr-only">Close panel</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="size-6">
+              <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="relative flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+          <div id="category-alert" class="hidden mb-6 rounded-md bg-red-50 p-4 dark:bg-red-500/10 dark:inset-ring dark:inset-ring-red-500/20">
+            <div class="flex items-start">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5 shrink-0 text-red-400 dark:text-red-400">
+                <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" fill-rule="evenodd" />
+              </svg>
+              <div class="ml-3 flex-1">
+                <p id="category-alert-message" class="text-sm font-medium text-red-800 dark:text-red-200"></p>
+              </div>
+              <button id="category-alert-dismiss" type="button" class="ml-3 shrink-0 rounded-md text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                <span class="sr-only">Dismiss</span>
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <form id="category-form" novalidate class="space-y-6">
+            <!-- Name -->
+            <div>
+              <label for="category-name" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Name</label>
+              <div class="mt-2">
+                <input type="text" id="category-name" maxlength="80" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus-visible:outline-indigo-500" placeholder="e.g. Elementalist" />
+              </div>
+              <p id="category-name-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+
+            <!-- Game -->
+            <div>
+              <label for="category-game" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Game</label>
+              <div class="mt-2 grid grid-cols-1">
+                <select id="category-game" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus-visible:outline-indigo-500">
+                  <option value="">Select a game&hellip;</option>
+                </select>
+                <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="pointer-events-none col-start-1 row-start-1 mr-2 size-4 self-center justify-self-end text-gray-500 dark:text-gray-400">
+                  <path d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
+              </div>
+              <p id="category-game-error" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex shrink-0 justify-end gap-x-3 border-t border-gray-200 px-4 py-4 dark:border-white/10">
+          <button id="category-cancel" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 inset-ring inset-ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:inset-ring-white/10 dark:hover:bg-white/20">Cancel</button>
+          <button id="category-save" type="submit" form="category-form" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">Save</button>
         </div>
       </div>
     </div>

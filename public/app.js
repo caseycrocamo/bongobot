@@ -71,6 +71,38 @@
 
     toast: document.getElementById('role-toast'),
     toastMessage: document.getElementById('role-toast-message'),
+
+    // Add game drawer
+    addGameButton: document.getElementById('add-game-button'),
+    gameDrawer: document.getElementById('game-drawer'),
+    gameDrawerBackdrop: document.getElementById('game-drawer-backdrop'),
+    gameDrawerPanel: document.getElementById('game-drawer-panel'),
+    gameDrawerClose: document.getElementById('game-drawer-close'),
+    gameAlert: document.getElementById('game-alert'),
+    gameAlertMessage: document.getElementById('game-alert-message'),
+    gameAlertDismiss: document.getElementById('game-alert-dismiss'),
+    gameForm: document.getElementById('game-form'),
+    gameName: document.getElementById('game-name'),
+    gameNameError: document.getElementById('game-name-error'),
+    gameCancel: document.getElementById('game-cancel'),
+    gameSave: document.getElementById('game-save'),
+
+    // Add category drawer
+    addCategoryButton: document.getElementById('add-category-button'),
+    categoryDrawer: document.getElementById('category-drawer'),
+    categoryDrawerBackdrop: document.getElementById('category-drawer-backdrop'),
+    categoryDrawerPanel: document.getElementById('category-drawer-panel'),
+    categoryDrawerClose: document.getElementById('category-drawer-close'),
+    categoryAlert: document.getElementById('category-alert'),
+    categoryAlertMessage: document.getElementById('category-alert-message'),
+    categoryAlertDismiss: document.getElementById('category-alert-dismiss'),
+    categoryForm: document.getElementById('category-form'),
+    categoryName: document.getElementById('category-name'),
+    categoryNameError: document.getElementById('category-name-error'),
+    categoryGame: document.getElementById('category-game'),
+    categoryGameError: document.getElementById('category-game-error'),
+    categoryCancel: document.getElementById('category-cancel'),
+    categorySave: document.getElementById('category-save'),
   };
 
   // ---------------------------------------------------------------------------
@@ -550,6 +582,226 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Add game drawer
+  // ---------------------------------------------------------------------------
+
+  function showGameAlert(message) {
+    els.gameAlertMessage.textContent = message;
+    els.gameAlert.classList.remove('hidden');
+  }
+  function hideGameAlert() {
+    els.gameAlert.classList.add('hidden');
+    els.gameAlertMessage.textContent = '';
+  }
+
+  function openGameDrawer() {
+    if (!getSecret()) {
+      showLogin('Your session has expired. Please sign in again.');
+      return;
+    }
+    hideGameAlert();
+    showFieldError(els.gameNameError, '');
+    els.gameDrawer.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      els.gameDrawerPanel.classList.remove('translate-x-full');
+    });
+  }
+  function closeGameDrawer() {
+    els.gameDrawerPanel.classList.add('translate-x-full');
+    window.setTimeout(() => {
+      els.gameDrawer.classList.add('hidden');
+    }, 300);
+  }
+
+  async function submitGame(event) {
+    event.preventDefault();
+    hideGameAlert();
+    showFieldError(els.gameNameError, '');
+
+    const name = els.gameName.value.trim();
+    if (name.length < 1 || name.length > 80) {
+      showFieldError(els.gameNameError, 'Name must be 1–80 characters.');
+      return;
+    }
+
+    const secret = getSecret();
+    if (!secret) {
+      closeGameDrawer();
+      showLogin('Your session has expired. Please sign in again.');
+      return;
+    }
+
+    els.gameSave.disabled = true;
+    try {
+      const res = await fetch('/api/admin/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ name }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+
+      if (res.status === 201) {
+        closeGameDrawer();
+        els.gameForm.reset();
+        showToast('Game created successfully.');
+        return;
+      }
+      if (res.status === 401) {
+        clearAuth();
+        closeGameDrawer();
+        showLogin('Your session has expired or the secret changed. Please sign in again.');
+        return;
+      }
+      showGameAlert((data && data.error) || `Request failed with status ${res.status}`);
+    } catch (err) {
+      console.error('Failed to create game', err);
+      showGameAlert('Network error. Please try again.');
+    } finally {
+      els.gameSave.disabled = false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Add category drawer
+  // ---------------------------------------------------------------------------
+
+  function showCategoryAlert(message) {
+    els.categoryAlertMessage.textContent = message;
+    els.categoryAlert.classList.remove('hidden');
+  }
+  function hideCategoryAlert() {
+    els.categoryAlert.classList.add('hidden');
+    els.categoryAlertMessage.textContent = '';
+  }
+
+  function populateCategoryGameSelect(games) {
+    while (els.categoryGame.options.length > 1) {
+      els.categoryGame.remove(1);
+    }
+    els.categoryGame.append(
+      ...games.map((game) => {
+        const option = document.createElement('option');
+        option.value = game.id;
+        option.textContent = game.name;
+        return option;
+      })
+    );
+  }
+
+  async function loadGamesIntoCategorySelect() {
+    const secret = getSecret();
+    if (!secret) return;
+    try {
+      const res = await fetch('/api/admin/games', { headers: { 'x-admin-secret': secret } });
+      if (res.status === 401) {
+        clearAuth();
+        closeCategoryDrawer();
+        showLogin('Your session has expired or the secret changed. Please sign in again.');
+        return;
+      }
+      if (!res.ok) {
+        showCategoryAlert(`Failed to load games (status ${res.status}).`);
+        return;
+      }
+      const data = await res.json();
+      populateCategoryGameSelect(data.games || []);
+      if (!data.games || data.games.length === 0) {
+        showCategoryAlert('No games exist yet. Add a game first.');
+      }
+    } catch (err) {
+      console.error('Failed to load games', err);
+      showCategoryAlert('Network error loading games. Please try again.');
+    }
+  }
+
+  function openCategoryDrawer() {
+    if (!getSecret()) {
+      showLogin('Your session has expired. Please sign in again.');
+      return;
+    }
+    hideCategoryAlert();
+    showFieldError(els.categoryNameError, '');
+    showFieldError(els.categoryGameError, '');
+    els.categoryDrawer.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      els.categoryDrawerPanel.classList.remove('translate-x-full');
+    });
+    loadGamesIntoCategorySelect();
+  }
+  function closeCategoryDrawer() {
+    els.categoryDrawerPanel.classList.add('translate-x-full');
+    window.setTimeout(() => {
+      els.categoryDrawer.classList.add('hidden');
+    }, 300);
+  }
+
+  async function submitCategory(event) {
+    event.preventDefault();
+    hideCategoryAlert();
+    showFieldError(els.categoryNameError, '');
+    showFieldError(els.categoryGameError, '');
+
+    let valid = true;
+    const name = els.categoryName.value.trim();
+    if (name.length < 1 || name.length > 80) {
+      showFieldError(els.categoryNameError, 'Name must be 1–80 characters.');
+      valid = false;
+    }
+    if (!els.categoryGame.value) {
+      showFieldError(els.categoryGameError, 'Game is required.');
+      valid = false;
+    }
+    if (!valid) return;
+
+    const secret = getSecret();
+    if (!secret) {
+      closeCategoryDrawer();
+      showLogin('Your session has expired. Please sign in again.');
+      return;
+    }
+
+    els.categorySave.disabled = true;
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ name, gameId: els.categoryGame.value }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+
+      if (res.status === 201) {
+        closeCategoryDrawer();
+        els.categoryForm.reset();
+        showToast('Category created successfully.');
+        // Refresh so the new category is selectable in the add-role drawer
+        // and appears in the dashboard filter.
+        await load();
+        return;
+      }
+      if (res.status === 401) {
+        clearAuth();
+        closeCategoryDrawer();
+        showLogin('Your session has expired or the secret changed. Please sign in again.');
+        return;
+      }
+      showCategoryAlert((data && data.error) || `Request failed with status ${res.status}`);
+    } catch (err) {
+      console.error('Failed to create category', err);
+      showCategoryAlert('Network error. Please try again.');
+    } finally {
+      els.categorySave.disabled = false;
+    }
+  }
+
   els.loginForm.addEventListener('submit', handleLogin);
   els.addRoleButton.addEventListener('click', openDrawer);
   els.drawerClose.addEventListener('click', closeDrawer);
@@ -564,9 +816,29 @@
     radio.addEventListener('change', applyIconSourceVisibility);
   });
   els.form.addEventListener('submit', submitRole);
+
+  els.addGameButton.addEventListener('click', openGameDrawer);
+  els.gameDrawerClose.addEventListener('click', closeGameDrawer);
+  els.gameCancel.addEventListener('click', closeGameDrawer);
+  els.gameDrawerBackdrop.addEventListener('click', closeGameDrawer);
+  els.gameAlertDismiss.addEventListener('click', hideGameAlert);
+  els.gameForm.addEventListener('submit', submitGame);
+
+  els.addCategoryButton.addEventListener('click', openCategoryDrawer);
+  els.categoryDrawerClose.addEventListener('click', closeCategoryDrawer);
+  els.categoryCancel.addEventListener('click', closeCategoryDrawer);
+  els.categoryDrawerBackdrop.addEventListener('click', closeCategoryDrawer);
+  els.categoryAlertDismiss.addEventListener('click', hideCategoryAlert);
+  els.categoryForm.addEventListener('submit', submitCategory);
+
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !els.drawer.classList.contains('hidden')) {
+    if (event.key !== 'Escape') return;
+    if (!els.drawer.classList.contains('hidden')) {
       closeDrawer();
+    } else if (!els.gameDrawer.classList.contains('hidden')) {
+      closeGameDrawer();
+    } else if (!els.categoryDrawer.classList.contains('hidden')) {
+      closeCategoryDrawer();
     }
   });
 

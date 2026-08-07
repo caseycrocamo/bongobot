@@ -1,12 +1,14 @@
 import 'dotenv/config';
-import { getAllManagedRoles } from '../mongo.js';
-import { ACHIEVEMENT_CATEGORY_ORDER } from './categoryOrder.js';
+import { getAllManagedRoles, getAllCategories } from '../mongo.js';
 import { toColorHex, generateUniqueCustomIdFrom } from './catalogUtils.js';
 
 const TTL_MS = 60_000;
 
 // Module-level cache: last-known-good defs plus expiry timestamp.
 const cache = { defs: null, expiresAt: 0 };
+
+// Separate cache for the Category collection (authoritative category names).
+const categoryCache = { names: null, expiresAt: 0 };
 
 function normalize(doc) {
     return {
@@ -86,7 +88,10 @@ export async function getAchievementCategories() {
     const present = new Set(
         defs.filter(d => d.type === 'achievement').map(d => d.category)
     );
-    return ACHIEVEMENT_CATEGORY_ORDER.filter(c => present.has(c));
+    // Order by the authoritative Category collection, keeping only categories
+    // that actually have at least one achievement role (the bot grant flow).
+    const order = await loadCategoryNames();
+    return order.filter(c => present.has(c));
 }
 
 export async function getRoleNameByCustomId(customId) {
@@ -113,4 +118,40 @@ export async function generateUniqueCustomId(short_name) {
 export function invalidate() {
     cache.defs = null;
     cache.expiresAt = 0;
+}
+
+// Category-collection loader (TTL cache + last-known-good), independent of the
+// role-defs cache. Returns category names ordered by their `order` field.
+async function loadCategoryNames() {
+    const now = Date.now();
+    if (categoryCache.names && now < categoryCache.expiresAt) {
+        return categoryCache.names;
+    }
+
+    let rows;
+    try {
+        rows = await getAllCategories(process.env.GUILD_ID);
+    } catch {
+        return categoryCache.names ?? [];
+    }
+
+    if (!Array.isArray(rows)) {
+        return categoryCache.names ?? [];
+    }
+
+    const names = rows.map((r) => r.name);
+    categoryCache.names = names;
+    categoryCache.expiresAt = now + TTL_MS;
+    return names;
+}
+
+// Authoritative category names from the Category collection (empty array before
+// the games migration has run). Consumers should fall back as appropriate.
+export async function getCollectionCategoryNames() {
+    return [...(await loadCategoryNames())];
+}
+
+export function invalidateCategories() {
+    categoryCache.names = null;
+    categoryCache.expiresAt = 0;
 }

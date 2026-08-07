@@ -276,4 +276,140 @@ export async function updateManagedRoleDiscordId(guildId, custom_id, discordRole
     }
 }
 
+// ---------------------------------------------------------------------------
+// Game collection (admin-only grouping of Categories; not surfaced to the bot)
+// ---------------------------------------------------------------------------
+export async function ensureGameIndexes(){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Game");
+        await col.createIndex({ guildId: 1, slug: 1 }, { unique: true });
+    } catch {
+        console.error("Issue ensuring indexes on Game");
+    }
+}
+// Inserts a Game. Lets errors (incl. duplicate-key 11000) propagate so callers
+// can translate a duplicate slug into a 409.
+export async function insertGame(doc){
+    await ensureGameIndexes();
+    await client.connect();
+    const db = client.db("BongoBot");
+    const col = db.collection("Game");
+    const result = await col.insertOne(doc);
+    return result.insertedId;
+}
+export async function getAllGames(guildId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Game");
+        const projection = { _id: 1, name: 1, slug: 1 };
+        const cursor = await col.find({ guildId }, { projection });
+        return await cursor.toArray();
+    } catch {
+        console.error("Issue getting from Game");
+        return [];
+    }
+}
+// Resolve a Game by its _id for this guild. Returns null on unknown id or a
+// malformed ObjectId (ObjectId() throws -> caught).
+export async function getGameById(guildId, id){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Game");
+        return await col.findOne({ _id: new ObjectId(id), guildId });
+    } catch {
+        return null;
+    }
+}
+// Idempotent upsert keyed on { guildId, slug }; returns the resulting document
+// (so migrations get the _id on both insert and match paths).
+export async function upsertGame(doc){
+    await client.connect();
+    const db = client.db("BongoBot");
+    const col = db.collection("Game");
+    await col.updateOne(
+        { guildId: doc.guildId, slug: doc.slug },
+        { $set: doc },
+        { upsert: true }
+    );
+    return await col.findOne({ guildId: doc.guildId, slug: doc.slug });
+}
+
+// ---------------------------------------------------------------------------
+// Category collection (authoritative list of category names + owning Game)
+// ---------------------------------------------------------------------------
+export async function ensureCategoryIndexes(){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Category");
+        await col.createIndex({ guildId: 1, slug: 1 }, { unique: true });
+    } catch {
+        console.error("Issue ensuring indexes on Category");
+    }
+}
+// Inserts a Category. Lets errors (incl. duplicate-key 11000) propagate.
+export async function insertCategory(doc){
+    await ensureCategoryIndexes();
+    await client.connect();
+    const db = client.db("BongoBot");
+    const col = db.collection("Category");
+    const result = await col.insertOne(doc);
+    return result.insertedId;
+}
+export async function getAllCategories(guildId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Category");
+        const projection = { _id: 0, name: 1, slug: 1, gameId: 1, order: 1 };
+        const cursor = await col.find({ guildId }, { projection }).sort({ order: 1 });
+        return await cursor.toArray();
+    } catch {
+        console.error("Issue getting from Category");
+        return [];
+    }
+}
+// Next order value for a new admin-created category (append after existing).
+export async function getNextCategoryOrder(guildId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Category");
+        const top = await col.find({ guildId }).sort({ order: -1 }).limit(1).toArray();
+        return (top.length && Number.isFinite(top[0].order)) ? top[0].order + 1 : 0;
+    } catch {
+        console.error("Issue computing next category order");
+        return 0;
+    }
+}
+export async function bulkUpsertCategories(docs){
+    const summary = { matchedCount: 0, modifiedCount: 0, upsertedCount: 0 };
+    if (!Array.isArray(docs) || docs.length === 0) {
+        return summary;
+    }
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("Category");
+        const operations = docs.map(doc => ({
+            updateOne: {
+                filter: { guildId: doc.guildId, slug: doc.slug },
+                update: { $set: doc },
+                upsert: true
+            }
+        }));
+        const result = await col.bulkWrite(operations, { ordered: false });
+        summary.matchedCount += result.matchedCount || 0;
+        summary.modifiedCount += result.modifiedCount || 0;
+        summary.upsertedCount += result.upsertedCount || 0;
+        return summary;
+    } catch {
+        console.error("Issue bulk upserting into Category");
+    }
+}
+
 await ping();

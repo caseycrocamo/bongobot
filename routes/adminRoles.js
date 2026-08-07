@@ -2,12 +2,12 @@ import express from 'express';
 import 'dotenv/config';
 import fetch from 'node-fetch';
 import { requireAdminSecret } from './adminAuth.js';
-import { insertManagedRole, deleteManagedRole, updateManagedRoleDiscordId } from '../mongo.js';
-import { generateUniqueCustomId, invalidate as invalidateCatalog } from '../roles/effectiveCatalog.js';
+import { insertManagedRole, deleteManagedRole, updateManagedRoleDiscordId, insertGame, getAllGames, getGameById, insertCategory, getNextCategoryOrder } from '../mongo.js';
+import { generateUniqueCustomId, invalidate as invalidateCatalog, invalidateCategories, getCollectionCategoryNames } from '../roles/effectiveCatalog.js';
+import { slugify } from '../roles/catalogUtils.js';
 import { createAndPositionRole } from '../roles/roles.js';
 import { GetGuildRoles } from '../discordclient.js';
 import { invalidateRolesCache } from './dashboard.js';
-import { ACHIEVEMENT_CATEGORY_ORDER } from '../roles/categoryOrder.js';
 
 const router = express.Router();
 
@@ -156,7 +156,10 @@ async function handler(req, res) {
         // --- category ---
         let category;
         if (type === 'achievement') {
-            if (!ACHIEVEMENT_CATEGORY_ORDER.includes(body.category)) {
+            // Valid categories come from the authoritative Category collection
+            // (admin-managed, each assigned to a game).
+            const validCategories = await getCollectionCategoryNames();
+            if (!validCategories.includes(body.category)) {
                 return res.status(400).json({ error: 'Invalid category for achievement' });
             }
             category = body.category;
@@ -296,5 +299,86 @@ router.get('/api/admin/session', requireAdminSecret, (_req, res) => {
 });
 
 router.post('/api/admin/roles', requireAdminSecret, express.json({ limit: '1mb' }), handler);
+
+// --- Games (admin-only grouping of categories) ---
+
+router.get('/api/admin/games', requireAdminSecret, async (_req, res) => {
+    const guildId = process.env.GUILD_ID;
+    const games = await getAllGames(guildId);
+    return res.json({ games: games.map((g) => ({ id: String(g._id), name: g.name, slug: g.slug })) });
+});
+
+router.post('/api/admin/games', requireAdminSecret, express.json(), async (req, res) => {
+    const guildId = process.env.GUILD_ID;
+    const body = req.body || {};
+
+    if (typeof body.name !== 'string') {
+        return res.status(400).json({ error: 'name is required' });
+    }
+    const name = body.name.trim();
+    if (name.length < 1 || name.length > 80) {
+        return res.status(400).json({ error: 'name must be 1-80 characters' });
+    }
+    const slug = slugify(name);
+    if (!slug) {
+        return res.status(400).json({ error: 'name must contain at least one alphanumeric character' });
+    }
+
+    const doc = { guildId, name, slug, source: 'admin', createdAt: new Date(), createdBy: 'admin' };
+    try {
+        const insertedId = await insertGame(doc);
+        return res.status(201).json({ game: { id: String(insertedId), name, slug } });
+    } catch (err) {
+        if (err && err.code === 11000) {
+            return res.status(409).json({ error: 'A game with that name already exists' });
+        }
+        console.error('Unexpected error creating game', err);
+        return res.status(500).json({ error: 'Internal error' });
+    }
+});
+
+// --- Categories (assigned to a game; authoritative category list) ---
+
+router.post('/api/admin/categories', requireAdminSecret, express.json(), async (req, res) => {
+    const guildId = process.env.GUILD_ID;
+    const body = req.body || {};
+
+    if (typeof body.name !== 'string') {
+        return res.status(400).json({ error: 'name is required' });
+    }
+    const name = body.name.trim();
+    if (name.length < 1 || name.length > 80) {
+        return res.status(400).json({ error: 'name must be 1-80 characters' });
+    }
+
+    if (typeof body.gameId !== 'string' || !body.gameId.trim()) {
+        return res.status(400).json({ error: 'gameId is required' });
+    }
+    const game = await getGameById(guildId, body.gameId.trim());
+    if (!game) {
+        return res.status(400).json({ error: 'gameId does not match an existing game' });
+    }
+
+    const slug = slugify(name);
+    if (!slug) {
+        return res.status(400).json({ error: 'name must contain at least one alphanumeric character' });
+    }
+
+    const order = await getNextCategoryOrder(guildId);
+    const doc = { guildId, name, slug, gameId: game._id, order, source: 'admin', createdAt: new Date(), createdBy: 'admin' };
+    try {
+        const insertedId = await insertCategory(doc);
+        // Refresh the category-name cache so the new (empty) category is
+        // immediately selectable in the add-role drawer / dashboard filter.
+        invalidateCategories();
+        return res.status(201).json({ category: { id: String(insertedId), name, slug, gameId: String(game._id) } });
+    } catch (err) {
+        if (err && err.code === 11000) {
+            return res.status(409).json({ error: 'A category with that name already exists' });
+        }
+        console.error('Unexpected error creating category', err);
+        return res.status(500).json({ error: 'Internal error' });
+    }
+});
 
 export default router;

@@ -1,4 +1,4 @@
-import { getAchievementDefs, getAllDefs, getAchievementCategories } from './effectiveCatalog.js';
+import { getAchievementDefs, getAllDefs, getAchievementCategories, getCollectionCategoryNames } from './effectiveCatalog.js';
 
 function normalizeAchievement(def) {
     return {
@@ -24,6 +24,13 @@ export async function getAchievementsPage(page, pageSize) {
 }
 
 export async function getAchievementCategoryOrder() {
+    // Prefer the authoritative Category collection so newly added (empty)
+    // categories are immediately selectable in the admin UI. Fall back to the
+    // materialized-from-roles list before the games migration has run.
+    const fromCollection = await getCollectionCategoryNames();
+    if (fromCollection.length > 0) {
+        return fromCollection;
+    }
     return await getAchievementCategories();
 }
 
