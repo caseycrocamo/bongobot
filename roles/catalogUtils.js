@@ -59,6 +59,69 @@ export function countAchievementCategories(defs) {
     return counts;
 }
 
+/**
+ * Filter (by allowed category names) then paginate a list of achievement defs.
+ * Pure so the filter/clamp/slice logic behind getAchievementsPage() is
+ * unit-testable without a DB.
+ *
+ * @param {Array<{category:string}>} defs full (unpaged) achievement defs
+ * @param {number} page 1-based page (clamped to [1, totalPages])
+ * @param {number} pageSize
+ * @param {{categoryNames?:Set<string>|string[]|null}} options
+ *        when categoryNames is provided, defs are filtered to those categories
+ *        BEFORE total/totalPages/slice are computed
+ * @returns {{items:Array, pagination:{page:number,pageSize:number,total:number,totalPages:number}}}
+ */
+export function paginateAchievementDefs(defs, page, pageSize, options = {}) {
+    const { categoryNames = null } = options;
+    let all = defs || [];
+    if (categoryNames != null) {
+        const allowed = categoryNames instanceof Set ? categoryNames : new Set(categoryNames);
+        all = all.filter((def) => allowed.has(def && def.category));
+    }
+    const total = all.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const clampedPage = Math.min(Math.max(page, 1), totalPages);
+    const start = (clampedPage - 1) * pageSize;
+    const items = all.slice(start, start + pageSize);
+    return { items, pagination: { page: clampedPage, pageSize, total, totalPages } };
+}
+
+// Sentinel gameId for the synthetic "Ungrouped" card (whose real game id is
+// null). Shared between the client and the dashboard route so an "Ungrouped"
+// whole-game selection is distinguishable from "show all".
+export const UNGROUPED_FILTER_ID = '__ungrouped__';
+
+/**
+ * Resolve an active table filter to the set of allowed category names.
+ *
+ * @param {Array<{id:string|null,categories:Array<{name:string}>}>} games
+ *        Output of buildGamesWithCategories (unfiltered, full catalog).
+ * @param {{gameId?:string,category?:string}} filter
+ * @returns {string[]|null} allowed category names, or null for "no filter".
+ *
+ * - A non-empty `category` → `[category]` (direct filter).
+ * - Else a `gameId` (a real id, or UNGROUPED_FILTER_ID → the entry with
+ *   id === null) → that game's `categories.map(c => c.name)`. Unknown gameId →
+ *   `[]` (empty result, not "all").
+ * - Else → null (no filter).
+ */
+export function resolveFilterCategoryNames(games, filter) {
+    const { gameId, category } = filter || {};
+    if (typeof category === 'string' && category.length > 0) {
+        return [category];
+    }
+    if (typeof gameId === 'string' && gameId.length > 0) {
+        const targetId = gameId === UNGROUPED_FILTER_ID ? null : gameId;
+        const game = (games || []).find((g) => g.id === targetId);
+        if (!game) {
+            return [];
+        }
+        return (game.categories || []).map((c) => c.name);
+    }
+    return null;
+}
+
 // Read a count for a category name from either a plain object or a Map.
 function lookupCount(counts, name) {
     if (!counts) return 0;

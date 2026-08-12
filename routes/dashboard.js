@@ -1,7 +1,8 @@
 import express from 'express';
 import { GetGuildRoles } from '../discordclient.js';
-import { getAchievementsPage, getAchievementCategoryOrder, getAchievementCategoryCounts, rolesForFallback } from '../roles/catalog.js';
+import { getAchievementsPage, getAchievementsTotal, getAchievementCategoryOrder, getAchievementCategoryCounts, rolesForFallback } from '../roles/catalog.js';
 import { getGamesWithCategories } from '../roles/effectiveCatalog.js';
+import { resolveFilterCategoryNames } from '../roles/catalogUtils.js';
 import { getRoleIdByName } from '../roles/roleutils.js';
 
 const router = express.Router();
@@ -57,14 +58,25 @@ function parsePageParam(value, fallback) {
 router.get('/api/achievements-and-roles', async (req, res) => {
     const page = parsePageParam(req.query.page, 1);
     const pageSize = Math.min(parsePageParam(req.query.pageSize, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
+    const gameId = typeof req.query.gameId === 'string' ? req.query.gameId : undefined;
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
 
     const roles = await getGuildRoles();
-    const achievements = await getAchievementsPage(page, pageSize);
-    achievements.categories = await getAchievementCategoryOrder();
+
     // Games with nested categories + server-computed per-category counts, so the
     // dashboard can group/filter the achievements table by game and category.
+    // Computed first (and always unfiltered) so card badge counts reflect the
+    // full catalog and so we can resolve the active filter to category names.
     const categoryCounts = await getAchievementCategoryCounts();
-    achievements.games = await getGamesWithCategories(categoryCounts);
+    const games = await getGamesWithCategories(categoryCounts);
+    const categoryNames = resolveFilterCategoryNames(games, { gameId, category });
+
+    const achievements = await getAchievementsPage(page, pageSize, { categoryNames });
+    achievements.categories = await getAchievementCategoryOrder();
+    achievements.games = games;
+    // Unfiltered grand total for the summary stat tile (stays constant while
+    // the table is filtered); pagination.total is the FILTERED total.
+    achievements.totalAchievements = await getAchievementsTotal();
     achievements.items = achievements.items.map((item) => {
         const roleId = getRoleIdByName(roles, item.name);
         const discordRole = roleId ? roles.find((role) => role.id === roleId) : undefined;
