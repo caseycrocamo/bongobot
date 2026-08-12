@@ -1,8 +1,34 @@
 import 'dotenv/config';
 import { GetGuildRoles, InstallGuildRole, ModifyGuildRolePosition, ModifyMember } from "../discordclient.js";
-import { getMemberRole, insertMemberRoleAssignment, removeMemberRole, updateMemberRoleAssignment } from '../mongo.js';
+import { getAllRolePositionAnchors, getMemberRole, insertMemberRoleAssignment, removeMemberRole, updateMemberRoleAssignment } from '../mongo.js';
 import { getRoleIdByName } from './roleutils.js';
 import { getRoleNameByCustomId } from './effectiveCatalog.js';
+
+// Pure: compute the target position for a new role. If any anchor roleId is
+// present in currentRoles, target the lowest-positioned anchor's slot (which
+// lands the new role directly below it); otherwise fall back to the current
+// default (just below the highest role).
+// Returns { position, source } where source is 'anchor' or 'default'.
+export function computeTargetPositionBelowAnchors(currentRoles, anchorRoleIds){
+    const roles = Array.isArray(currentRoles) ? currentRoles : [];
+    const highestPosition = roles.reduce((acc, r) => (r.position > acc ? r.position : acc), 0);
+    const anchorIds = new Set(anchorRoleIds || []);
+    const anchorPositions = roles
+        .filter((r) => anchorIds.has(r.id))
+        .map((r) => r.position);
+    if (anchorPositions.length > 0) {
+        const minAnchorPosition = Math.min(...anchorPositions);
+        return { position: Math.max(minAnchorPosition, 1), source: 'anchor' };
+    }
+    return { position: Math.max(highestPosition - 1, 1), source: 'default' };
+}
+
+// Resolves anchors from mongo and computes the target position for currentRoles.
+async function resolveTargetPosition(currentRoles){
+    const anchors = await getAllRolePositionAnchors(process.env.GUILD_ID);
+    const anchorRoleIds = (anchors || []).map((a) => a.roleId);
+    return computeTargetPositionBelowAnchors(currentRoles, anchorRoleIds);
+}
 
 
 export async function AddGuildRoles(roleList){
@@ -18,13 +44,9 @@ async function AddRole(role){
     return await InstallGuildRole(process.env.GUILD_ID, role);
 }
 async function ReorderRoles(roleIds, currentRoles){
-    const highestPosition = currentRoles.reduce((accumulator, currentValue) => {
-        if(currentValue.position > accumulator){
-            accumulator = currentValue.position;
-        }
-        return accumulator;
-    }, 0);
-    const request = roleIds.map((id) => {return {id, position: highestPosition - 1}})
+    const { position, source } = await resolveTargetPosition(currentRoles);
+    console.log(`Reordering ${roleIds.length} new role(s) to position ${position} (${source})`);
+    const request = roleIds.map((id) => {return {id, position}})
     ModifyGuildRolePosition(process.env.GUILD_ID, request);
 }
 
@@ -91,9 +113,15 @@ export async function createAndPositionRole(role){
         return created; // falsy / missing id => caller treats as failure
     }
     const currentRoles = await GetGuildRoles(process.env.GUILD_ID);
-    const highestPosition = Array.isArray(currentRoles)
-        ? currentRoles.reduce((acc, r) => (r.position > acc ? r.position : acc), 0)
-        : 1;
-    await ModifyGuildRolePosition(process.env.GUILD_ID, [{ id: created.id, position: Math.max(highestPosition - 1, 1) }]);
+    const target = await resolveTargetPosition(currentRoles);
+    console.log(`Positioning new role ${created.id} at position ${target.position} (${target.source})`);
+    const result = await ModifyGuildRolePosition(process.env.GUILD_ID, [{ id: created.id, position: target.position }]);
+    // Best-effort: a successful PATCH returns the full role array. If it failed
+    // and we were targeting below anchors, retry once at the default position.
+    if (!Array.isArray(result) && target.source === 'anchor') {
+        const fallback = computeTargetPositionBelowAnchors(currentRoles, []);
+        console.warn(`Anchor placement failed for role ${created.id}; falling back to default position ${fallback.position}`);
+        await ModifyGuildRolePosition(process.env.GUILD_ID, [{ id: created.id, position: fallback.position }]);
+    }
     return created;
 }

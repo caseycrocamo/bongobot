@@ -22,7 +22,9 @@
         "migrate:roles:up": "node ./migrations/001-seed-roles.up.js",
         "migrate:roles:down": "node ./migrations/001-seed-roles.down.js",
         "migrate:games:up": "node ./migrations/002-seed-games.up.js",
-        "migrate:games:down": "node ./migrations/002-seed-games.down.js"
+        "migrate:games:down": "node ./migrations/002-seed-games.down.js",
+        "migrate:anchors:up": "node ./migrations/003-seed-role-position-anchors.up.js",
+        "migrate:anchors:down": "node ./migrations/003-seed-role-position-anchors.down.js"
     },
     "author": "Casey Crocamo",
     "license": "MIT",

@@ -412,4 +412,65 @@ export async function bulkUpsertCategories(docs){
     }
 }
 
+// ---------------------------------------------------------------------------
+// RolePositionAnchor collection (roles new guild roles are placed just below)
+// ---------------------------------------------------------------------------
+export async function ensureRolePositionAnchorIndexes(){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("RolePositionAnchor");
+        await col.createIndex({ guildId: 1, roleId: 1 }, { unique: true });
+    } catch {
+        console.error("Issue ensuring indexes on RolePositionAnchor");
+    }
+}
+// Inserts an anchor. Lets errors (incl. duplicate-key 11000) propagate so the
+// migration can handle idempotency.
+export async function insertRolePositionAnchor(doc){
+    await ensureRolePositionAnchorIndexes();
+    await client.connect();
+    const db = client.db("BongoBot");
+    const col = db.collection("RolePositionAnchor");
+    const result = await col.insertOne(doc);
+    return result.insertedId;
+}
+export async function getAllRolePositionAnchors(guildId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("RolePositionAnchor");
+        const projection = { _id: 0, roleId: 1, name: 1 };
+        const cursor = await col.find({ guildId }, { projection });
+        return await cursor.toArray();
+    } catch {
+        console.error("Issue getting from RolePositionAnchor");
+        return [];
+    }
+}
+export async function deleteRolePositionAnchor(guildId, roleId){
+    try{
+        await client.connect();
+        const db = client.db("BongoBot");
+        const col = db.collection("RolePositionAnchor");
+        const result = await col.deleteOne({ guildId, roleId });
+        return result.deletedCount;
+    } catch {
+        console.error("Issue deleting from RolePositionAnchor");
+    }
+}
+// Idempotent upsert keyed on { guildId, roleId }; returns the resulting document.
+export async function upsertRolePositionAnchor(doc){
+    await ensureRolePositionAnchorIndexes();
+    await client.connect();
+    const db = client.db("BongoBot");
+    const col = db.collection("RolePositionAnchor");
+    await col.updateOne(
+        { guildId: doc.guildId, roleId: doc.roleId },
+        { $set: doc },
+        { upsert: true }
+    );
+    return await col.findOne({ guildId: doc.guildId, roleId: doc.roleId });
+}
+
 await ping();
