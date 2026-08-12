@@ -109,6 +109,36 @@ describe('catalogUtils', function () {
             expect(resolveFilterCategoryNames(games, { gameId: '', category: '' })).toBeNull();
             expect(resolveFilterCategoryNames(games, undefined)).toBeNull();
         });
+
+        it('unions the category names across a multi-select gameIds list', function () {
+            expect(resolveFilterCategoryNames(games, { gameIds: ['g1', 'g2'] }))
+                .toEqual(['Raids', 'Fractals', 'Mythic+']);
+            // includes the Ungrouped sentinel in the union
+            expect(resolveFilterCategoryNames(games, { gameIds: ['g2', UNGROUPED_FILTER_ID] }))
+                .toEqual(['Mythic+', 'Orphan']);
+        });
+
+        it('de-duplicates category names shared across selected games', function () {
+            const dupGames = [
+                { id: 'a', name: 'A', categories: [{ name: 'Shared' }, { name: 'OnlyA' }] },
+                { id: 'b', name: 'B', categories: [{ name: 'Shared' }, { name: 'OnlyB' }] },
+            ];
+            expect(resolveFilterCategoryNames(dupGames, { gameIds: ['a', 'b'] }))
+                .toEqual(['Shared', 'OnlyA', 'OnlyB']);
+        });
+
+        it('returns [] for an explicit empty gameIds selection (no results)', function () {
+            expect(resolveFilterCategoryNames(games, { gameIds: [] })).toEqual([]);
+        });
+
+        it('ignores unrecognized ids within a gameIds list', function () {
+            expect(resolveFilterCategoryNames(games, { gameIds: ['nope', 'g2'] })).toEqual(['Mythic+']);
+        });
+
+        it('lets category take precedence over gameIds', function () {
+            expect(resolveFilterCategoryNames(games, { gameIds: ['g1'], category: 'Mythic+' }))
+                .toEqual(['Mythic+']);
+        });
     });
 
     describe('paginateAchievementDefs', function () {

@@ -107,9 +107,28 @@ export const UNGROUPED_FILTER_ID = '__ungrouped__';
  * - Else → null (no filter).
  */
 export function resolveFilterCategoryNames(games, filter) {
-    const { gameId, category } = filter || {};
+    const { gameId, gameIds, category } = filter || {};
     if (typeof category === 'string' && category.length > 0) {
         return [category];
+    }
+    // Multi-select: union of the selected games' category names (de-duplicated,
+    // first-seen order). An explicit empty array means "nothing selected" → no
+    // results; unrecognized ids contribute nothing.
+    if (Array.isArray(gameIds)) {
+        const names = [];
+        const seen = new Set();
+        for (const id of gameIds) {
+            const targetId = id === UNGROUPED_FILTER_ID ? null : id;
+            const game = (games || []).find((g) => g.id === targetId);
+            if (!game) continue;
+            for (const c of game.categories || []) {
+                if (!seen.has(c.name)) {
+                    seen.add(c.name);
+                    names.push(c.name);
+                }
+            }
+        }
+        return names;
     }
     if (typeof gameId === 'string' && gameId.length > 0) {
         const targetId = gameId === UNGROUPED_FILTER_ID ? null : gameId;

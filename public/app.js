@@ -5,13 +5,12 @@
     items: [],
     categoryOrder: [],
     games: [],
-    // Single active filter across all game cards. null gameId + null category
-    // means "show everything".
-    activeFilter: { gameId: null, category: null },
-    // Map of category name -> owning game id, rebuilt from state.games so an
-    // achievement's item.category can be resolved to its game when filtering by
-    // a whole game.
-    categoryToGameId: {},
+    // Multi-select game filter: the set of toggled-on pill ids (a game's id, or
+    // the Ungrouped sentinel). All games are selected on load.
+    selectedGameIds: new Set(),
+    // Single category filter chosen from the dropdown; null = all categories
+    // within the selected games.
+    selectedCategory: null,
     // Current 1-based page requested; snapped to the server's returned page.
     page: 1,
     // Server pagination meta for the current (filtered) result:
@@ -34,12 +33,16 @@
     appShell: document.getElementById('app-shell'),
 
     statAchievements: document.getElementById('stat-achievements'),
+    statGames: document.getElementById('stat-games'),
+    statCategories: document.getElementById('stat-categories'),
 
     // Games overview
     gamesOverviewLoading: document.getElementById('games-overview-loading'),
     gamesOverviewError: document.getElementById('games-overview-error'),
     gamesOverviewEmpty: document.getElementById('games-overview-empty'),
-    gamesOverviewCards: document.getElementById('games-overview-cards'),
+    gamesOverviewContent: document.getElementById('games-overview-content'),
+    gamesPills: document.getElementById('games-pills'),
+    categoryFilter: document.getElementById('category-filter'),
 
     clearFilter: document.getElementById('clear-filter'),
 
@@ -337,13 +340,12 @@
   }
 
   function renderAchievements() {
-    const { gameId, category } = state.activeFilter;
     // The server already returned the correct (filtered) page; just order the
     // current page by category and render.
     const sorted = sortByCategory(state.items, state.categoryOrder);
 
-    // Reveal the global clear-filter control only while a filter is active.
-    els.clearFilter.classList.toggle('hidden', gameId === null && category === null);
+    // Reveal the global clear/reset control only while a filter is active.
+    updateClearButton();
 
     if (sorted.length === 0) {
       showAchievementsState('empty');
@@ -355,189 +357,220 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Games overview (one card per game, each with a scoped category filter)
+  // Games overview (toggleable game pills + a single scoped category dropdown)
   // ---------------------------------------------------------------------------
 
-  // Sentinel filter id for the synthetic "Ungrouped" card (game id is null in
-  // the API), so its whole-game selection is distinguishable from "show all".
+  // Sentinel filter id for the synthetic "Ungrouped" pill (game id is null in
+  // the API), so it can be selected and sent to the server distinctly.
   const UNGROUPED_ID = '__ungrouped__';
-
-  const SELECT_CLASS =
-    'col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:*:bg-gray-800 dark:focus-visible:outline-indigo-500';
 
   function showGamesOverviewState(name) {
     els.gamesOverviewLoading.classList.toggle('hidden', name !== 'loading');
     els.gamesOverviewError.classList.toggle('hidden', name !== 'error');
     els.gamesOverviewEmpty.classList.toggle('hidden', name !== 'empty');
-    els.gamesOverviewCards.classList.toggle('hidden', name !== 'data');
+    els.gamesOverviewContent.classList.toggle('hidden', name !== 'data');
   }
 
-  // A card's filter id: the real game id, or the sentinel for the Ungrouped card.
+  // A pill's filter id: the real game id, or the sentinel for the Ungrouped pill.
   function cardFilterId(game) {
     return game.id === null ? UNGROUPED_ID : game.id;
   }
 
-  function buildCategoryToGameId(games) {
-    const map = {};
-    games.forEach((game) => {
-      const gid = cardFilterId(game);
+  // True when every available game pill is toggled on (or there are no games) —
+  // i.e. no game-level narrowing is in effect.
+  function allGamesSelected() {
+    return state.games.length === 0 || state.selectedGameIds.size === state.games.length;
+  }
+
+  // categoryName -> count across all games (counts are game-independent).
+  function buildCategoryCounts() {
+    const counts = {};
+    state.games.forEach((game) => {
       (game.categories || []).forEach((cat) => {
-        map[cat.name] = gid;
+        counts[cat.name] = cat.count;
       });
     });
-    return map;
+    return counts;
   }
 
-  // Reflect the single active filter across every card select: the matching
-  // card shows its selected category (or its "All" placeholder), all others
-  // reset to their placeholder.
-  function reflectFilterSelection() {
-    const { gameId, category } = state.activeFilter;
-    els.gamesOverviewCards.querySelectorAll('select[data-game-id]').forEach((select) => {
-      if (select.dataset.gameId === String(gameId)) {
-        select.value = category || '';
-      } else {
-        select.value = '';
-      }
+  // Ordered, de-duplicated category names belonging to the currently selected
+  // games, following the canonical category order.
+  function selectedCategoryNames() {
+    const inSelected = new Set();
+    state.games.forEach((game) => {
+      if (!state.selectedGameIds.has(cardFilterId(game))) return;
+      (game.categories || []).forEach((cat) => inSelected.add(cat.name));
     });
+    const ordered = state.categoryOrder.filter((name) => inSelected.has(name));
+    // Defensive: include any selected-game category missing from categoryOrder.
+    inSelected.forEach((name) => {
+      if (!ordered.includes(name)) ordered.push(name);
+    });
+    return ordered;
   }
 
-  function renderGameCard(game) {
-    const gid = cardFilterId(game);
+  const PILL_BASE =
+    'inline-flex items-center gap-x-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:focus-visible:outline-indigo-500';
+  const PILL_ON = 'bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400';
+  const PILL_OFF = 'bg-white text-gray-700 inset-ring inset-ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-300 dark:inset-ring-white/10 dark:hover:bg-white/20';
+  const PILL_COUNT_ON = 'rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-semibold';
+  const PILL_COUNT_OFF = 'rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-white/10 dark:text-gray-300';
 
-    const card = document.createElement('div');
-    card.className = 'rounded-lg bg-white px-4 py-5 shadow-sm sm:p-6 dark:bg-gray-800/75 dark:inset-ring dark:inset-ring-white/10';
-
-    const head = document.createElement('div');
-    head.className = 'flex items-center justify-between gap-3';
-    const heading = document.createElement('h3');
-    heading.className = 'truncate text-base font-semibold text-gray-900 dark:text-white';
-    heading.textContent = game.name;
-    const badge = document.createElement('span');
-    badge.className = 'inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-gray-300';
-    badge.textContent = `${game.count} achievement${game.count === 1 ? '' : 's'}`;
-    head.appendChild(heading);
-    head.appendChild(badge);
-    card.appendChild(head);
-
-    const controlWrap = document.createElement('div');
-    controlWrap.className = 'mt-4';
-
-    const label = document.createElement('label');
-    label.className = 'sr-only';
-    const selectId = `game-cat-${game.slug || gid}`;
-    label.htmlFor = selectId;
-    label.textContent = `Filter ${game.name} by category`;
-    controlWrap.appendChild(label);
-
-    const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-1';
-
-    const select = document.createElement('select');
-    select.id = selectId;
-    select.className = SELECT_CLASS;
-    select.dataset.gameId = String(gid);
-
-    const allOption = document.createElement('option');
-    allOption.value = '';
-    allOption.textContent = `All ${game.name} categories`;
-    select.appendChild(allOption);
-
-    (game.categories || []).forEach((cat) => {
-      const option = document.createElement('option');
-      option.value = cat.name;
-      option.textContent = `${cat.name} (${cat.count})`;
-      select.appendChild(option);
-    });
-
-    select.addEventListener('change', () => {
-      state.activeFilter = { gameId: gid, category: select.value || null };
-      reflectFilterSelection();
-      // A filter change resets to page 1 and refetches (server-side filtering).
-      // Card badge counts are unfiltered, so leave the cards in place.
-      state.page = 1;
-      load({ rerenderGames: false });
-    });
-
-    grid.appendChild(select);
-
-    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    chevron.setAttribute('viewBox', '0 0 16 16');
-    chevron.setAttribute('fill', 'currentColor');
-    chevron.setAttribute('aria-hidden', 'true');
-    chevron.setAttribute('class', 'pointer-events-none col-start-1 row-start-1 mr-2 size-4 self-center justify-self-end text-gray-500 dark:text-gray-400');
-    const chevronPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    chevronPath.setAttribute('d', 'M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z');
-    chevronPath.setAttribute('clip-rule', 'evenodd');
-    chevronPath.setAttribute('fill-rule', 'evenodd');
-    chevron.appendChild(chevronPath);
-    grid.appendChild(chevron);
-
-    controlWrap.appendChild(grid);
-    card.appendChild(controlWrap);
-
-    return card;
+  function stylePill(pill, on) {
+    pill.className = `${PILL_BASE} ${on ? PILL_ON : PILL_OFF}`;
+    pill.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const count = pill.querySelector('[data-count]');
+    if (count) count.className = on ? PILL_COUNT_ON : PILL_COUNT_OFF;
   }
 
-  function renderGamesOverview() {
-    state.categoryToGameId = buildCategoryToGameId(state.games);
+  // Minimal CSS.escape fallback for use in an attribute selector.
+  function cssEscape(value) {
+    return window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+  }
 
-    if (!state.games || state.games.length === 0) {
-      els.gamesOverviewCards.replaceChildren();
-      showGamesOverviewState('empty');
-      return;
+  function renderGamePills() {
+    els.gamesPills.replaceChildren(
+      ...state.games.map((game) => {
+        const gid = cardFilterId(game);
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.dataset.gameId = String(gid);
+
+        const label = document.createElement('span');
+        label.textContent = game.name;
+        pill.appendChild(label);
+
+        const count = document.createElement('span');
+        count.dataset.count = '';
+        count.textContent = String(game.count);
+        pill.appendChild(count);
+
+        stylePill(pill, state.selectedGameIds.has(gid));
+        pill.addEventListener('click', () => togglePill(gid));
+        return pill;
+      })
+    );
+  }
+
+  function togglePill(gid) {
+    if (state.selectedGameIds.has(gid)) {
+      state.selectedGameIds.delete(gid);
+    } else {
+      state.selectedGameIds.add(gid);
     }
+    const pill = els.gamesPills.querySelector(`button[data-game-id="${cssEscape(String(gid))}"]`);
+    if (pill) stylePill(pill, state.selectedGameIds.has(gid));
 
-    els.gamesOverviewCards.replaceChildren(...state.games.map(renderGameCard));
-    reflectFilterSelection();
-    showGamesOverviewState('data');
-  }
-
-  function clearFilter() {
-    state.activeFilter = { gameId: null, category: null };
-    reflectFilterSelection();
-    // Clearing the filter resets to page 1 and refetches the full paged list.
-    // Card badge counts are unfiltered, so leave the cards in place.
+    // Rebuild the dropdown from the new selection (drops a chosen category whose
+    // game was just toggled off), then refetch from page 1.
+    renderCategoryDropdown();
     state.page = 1;
     load({ rerenderGames: false });
   }
 
-  // Build the query string for the achievements fetch from the active filter and
-  // the current page. A category filter takes precedence over a whole-game one;
-  // the Ungrouped card's sentinel gameId is sent as-is.
+  function renderCategoryDropdown() {
+    const counts = buildCategoryCounts();
+    const names = selectedCategoryNames();
+
+    // Preserve the current selection only if it is still available.
+    if (state.selectedCategory && !names.includes(state.selectedCategory)) {
+      state.selectedCategory = null;
+    }
+
+    const all = document.createElement('option');
+    all.value = '';
+    all.textContent = 'All categories';
+    const options = [all];
+    names.forEach((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = `${name} (${counts[name] || 0})`;
+      options.push(option);
+    });
+    els.categoryFilter.replaceChildren(...options);
+    els.categoryFilter.value = state.selectedCategory || '';
+  }
+
+  function onCategoryChange() {
+    state.selectedCategory = els.categoryFilter.value || null;
+    state.page = 1;
+    load({ rerenderGames: false });
+  }
+
+  function renderGamesOverview() {
+    if (!state.games || state.games.length === 0) {
+      els.gamesPills.replaceChildren();
+      els.categoryFilter.replaceChildren();
+      showGamesOverviewState('empty');
+      return;
+    }
+    renderGamePills();
+    renderCategoryDropdown();
+    showGamesOverviewState('data');
+  }
+
+  // The clear/reset control is shown whenever the filter differs from the
+  // default (all games on, all categories).
+  function updateClearButton() {
+    const active = !allGamesSelected() || Boolean(state.selectedCategory);
+    els.clearFilter.classList.toggle('hidden', !active);
+  }
+
+  function resetFilters() {
+    state.selectedGameIds = new Set(state.games.map(cardFilterId));
+    state.selectedCategory = null;
+    renderGamePills();
+    renderCategoryDropdown();
+    state.page = 1;
+    load({ rerenderGames: false });
+  }
+
+  // Build the query string for the achievements fetch. A chosen category filters
+  // directly; otherwise a non-"all" game selection sends the selected ids (the
+  // Ungrouped sentinel included). All games + no category => no filter params.
   function buildAchievementsQuery() {
     const params = new URLSearchParams();
     params.set('page', String(state.page));
     params.set('pageSize', String(PAGE_SIZE));
-    const { gameId, category } = state.activeFilter;
-    if (category) {
-      params.set('category', category);
-    } else if (gameId !== null && gameId !== undefined) {
-      params.set('gameId', String(gameId));
+    if (state.selectedCategory) {
+      params.set('category', state.selectedCategory);
+    } else if (!allGamesSelected()) {
+      params.set('gameIds', [...state.selectedGameIds].join(','));
     }
     return params.toString();
   }
 
-  // opts.rerenderGames: rebuild the games overview cards (full/first load or after
-  // a create). Pure page navigation leaves the cards in place to avoid select
-  // flicker, but still reflects the active filter selection.
+  // opts.rerenderGames: full/first load (or after a create) — reset the filter to
+  // "all games, all categories", rebuild the pills + dropdown, and fetch the
+  // unfiltered first page. Page navigation / filter changes pass false and keep
+  // the current pills in place.
   async function load(opts = {}) {
     const { rerenderGames = true } = opts;
     showAchievementsState('loading');
     if (rerenderGames) {
       showGamesOverviewState('loading');
+      state.page = 1;
+      state.selectedCategory = null;
     }
     try {
-      const res = await fetch(`/api/achievements-and-roles?${buildAchievementsQuery()}`);
+      // A full load does not yet know the game list, so it fetches unfiltered
+      // (all achievements); non-full loads apply the current filter.
+      const query = rerenderGames
+        ? new URLSearchParams({ page: '1', pageSize: String(PAGE_SIZE) }).toString()
+        : buildAchievementsQuery();
+      const res = await fetch(`/api/achievements-and-roles?${query}`);
       if (!res.ok) {
         throw new Error(`Request failed with status ${res.status}`);
       }
       const data = await res.json();
       const { items, pagination, categories, games, totalAchievements } = data.achievements;
 
-      // Summary stat tile shows the unfiltered grand total, not the filtered
-      // pagination.total, so it stays constant while filtering.
+      // Summary stat tiles show the unfiltered totals, so they stay constant
+      // while the table is filtered.
       els.statAchievements.textContent = String(totalAchievements);
+      els.statGames.textContent = String((games || []).filter((g) => g.id !== null).length);
+      els.statCategories.textContent = String((categories || []).length);
+
       state.items = items;
       state.categoryOrder = categories || [];
       state.pagination = pagination;
@@ -545,10 +578,9 @@
       state.page = pagination.page;
       if (rerenderGames) {
         state.games = games || [];
+        // Default to every game selected.
+        state.selectedGameIds = new Set(state.games.map(cardFilterId));
         renderGamesOverview();
-      } else {
-        // Keep the existing cards; just re-reflect the active filter.
-        reflectFilterSelection();
       }
       populateRoleCategorySelect(state.categoryOrder);
       renderAchievements();
@@ -563,7 +595,8 @@
     }
   }
 
-  els.clearFilter.addEventListener('click', clearFilter);
+  els.categoryFilter.addEventListener('change', onCategoryChange);
+  els.clearFilter.addEventListener('click', resetFilters);
 
   // Prev/Next paginate within the current filter without rebuilding the games
   // overview. Guard against stepping past the known bounds.

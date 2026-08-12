@@ -60,6 +60,12 @@ router.get('/api/achievements-and-roles', async (req, res) => {
     const pageSize = Math.min(parsePageParam(req.query.pageSize, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
     const gameId = typeof req.query.gameId === 'string' ? req.query.gameId : undefined;
     const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    // Multi-select games filter: comma-separated ids. An empty string is an
+    // explicit "nothing selected" (→ no results), distinct from the param being
+    // absent (→ no game filter).
+    const gameIds = typeof req.query.gameIds === 'string'
+        ? req.query.gameIds.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined;
 
     const roles = await getGuildRoles();
 
@@ -69,7 +75,7 @@ router.get('/api/achievements-and-roles', async (req, res) => {
     // full catalog and so we can resolve the active filter to category names.
     const categoryCounts = await getAchievementCategoryCounts();
     const games = await getGamesWithCategories(categoryCounts);
-    const categoryNames = resolveFilterCategoryNames(games, { gameId, category });
+    const categoryNames = resolveFilterCategoryNames(games, { gameId, gameIds, category });
 
     const achievements = await getAchievementsPage(page, pageSize, { categoryNames });
     achievements.categories = await getAchievementCategoryOrder();
