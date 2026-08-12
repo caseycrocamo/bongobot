@@ -3,7 +3,7 @@ import 'dotenv/config';
 import fetch from 'node-fetch';
 import { requireAdminSecret } from './adminAuth.js';
 import { insertManagedRole, deleteManagedRole, updateManagedRoleDiscordId, insertGame, getAllGames, getGameById, insertCategory, getNextCategoryOrder } from '../mongo.js';
-import { generateUniqueCustomId, invalidate as invalidateCatalog, invalidateCategories, getCollectionCategoryNames } from '../roles/effectiveCatalog.js';
+import { generateUniqueCustomId, invalidate as invalidateCatalog, invalidateCategories, invalidateGames, getCollectionCategoryNames } from '../roles/effectiveCatalog.js';
 import { slugify } from '../roles/catalogUtils.js';
 import { createAndPositionRole } from '../roles/roles.js';
 import { GetGuildRoles } from '../discordclient.js';
@@ -327,6 +327,9 @@ router.post('/api/admin/games', requireAdminSecret, express.json(), async (req, 
     const doc = { guildId, name, slug, source: 'admin', createdAt: new Date(), createdBy: 'admin' };
     try {
         const insertedId = await insertGame(doc);
+        // Bust the games cache so the new game appears in the overview / grouping
+        // without a restart.
+        invalidateGames();
         return res.status(201).json({ game: { id: String(insertedId), name, slug } });
     } catch (err) {
         if (err && err.code === 11000) {
