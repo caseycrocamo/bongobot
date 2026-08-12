@@ -1,5 +1,5 @@
 import { getAchievementDefs, getAllDefs, getAchievementCategories, getCollectionCategoryNames } from './effectiveCatalog.js';
-import { countAchievementCategories } from './catalogUtils.js';
+import { countAchievementCategories, paginateAchievementDefs } from './catalogUtils.js';
 
 function normalizeAchievement(def) {
     return {
@@ -14,14 +14,18 @@ function normalizeAchievement(def) {
     };
 }
 
-export async function getAchievementsPage(page, pageSize) {
+export async function getAchievementsPage(page, pageSize, options = {}) {
     const all = await getAchievementDefs();
-    const total = all.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const clampedPage = Math.min(Math.max(page, 1), totalPages);
-    const start = (clampedPage - 1) * pageSize;
-    const items = all.slice(start, start + pageSize).map(normalizeAchievement);
-    return { items, pagination: { page: clampedPage, pageSize, total, totalPages } };
+    // Filter (by options.categoryNames) + clamp + slice happens in the pure
+    // helper so pagination reflects the filtered result and stays unit-testable.
+    const { items, pagination } = paginateAchievementDefs(all, page, pageSize, options);
+    return { items: items.map(normalizeAchievement), pagination };
+}
+
+// Unfiltered grand total of achievement defs, for the summary stat tile which
+// must stay constant while the table is filtered.
+export async function getAchievementsTotal() {
+    return (await getAchievementDefs()).length;
 }
 
 export async function getAchievementCategoryOrder() {

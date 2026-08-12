@@ -12,6 +12,11 @@
     // achievement's item.category can be resolved to its game when filtering by
     // a whole game.
     categoryToGameId: {},
+    // Current 1-based page requested; snapped to the server's returned page.
+    page: 1,
+    // Server pagination meta for the current (filtered) result:
+    // { page, pageSize, total, totalPages }.
+    pagination: null,
   };
 
   // Admin auth is stored in localStorage with a 15-day expiry. Within that
@@ -43,6 +48,10 @@
     achievementsEmpty: document.getElementById('achievements-empty'),
     achievementsTableWrapper: document.getElementById('achievements-table-wrapper'),
     achievementsTableBody: document.getElementById('achievements-table-body'),
+    achievementsPagination: document.getElementById('achievements-pagination'),
+    achievementsPageStatus: document.getElementById('achievements-page-status'),
+    achievementsPrev: document.getElementById('achievements-prev'),
+    achievementsNext: document.getElementById('achievements-next'),
 
     // Drawer
     addRoleButton: document.getElementById('add-role-button'),
@@ -236,6 +245,26 @@
     els.achievementsError.classList.toggle('hidden', name !== 'error');
     els.achievementsEmpty.classList.toggle('hidden', name !== 'empty');
     els.achievementsTableWrapper.classList.toggle('hidden', name !== 'data');
+    // The pagination footer only accompanies the data state; renderAchievements
+    // further hides it when the (filtered) result is empty.
+    if (name !== 'data') {
+      els.achievementsPagination.classList.add('hidden');
+    }
+  }
+
+  // Sync the pagination footer (status line + Prev/Next) from state.pagination.
+  function updatePagination() {
+    const pagination = state.pagination;
+    if (!pagination || pagination.total === 0) {
+      els.achievementsPagination.classList.add('hidden');
+      return;
+    }
+    const { page, total, totalPages } = pagination;
+    els.achievementsPageStatus.textContent =
+      `Page ${page} of ${totalPages} · ${total} result${total === 1 ? '' : 's'}`;
+    els.achievementsPrev.disabled = page <= 1;
+    els.achievementsNext.disabled = page >= totalPages;
+    els.achievementsPagination.classList.remove('hidden');
   }
 
   function renderRolePill(discordRole) {
@@ -309,15 +338,9 @@
 
   function renderAchievements() {
     const { gameId, category } = state.activeFilter;
-    let filtered;
-    if (category) {
-      filtered = state.items.filter((item) => item.category === category);
-    } else if (gameId !== null) {
-      filtered = state.items.filter((item) => state.categoryToGameId[item.category] === gameId);
-    } else {
-      filtered = state.items;
-    }
-    const sorted = sortByCategory(filtered, state.categoryOrder);
+    // The server already returned the correct (filtered) page; just order the
+    // current page by category and render.
+    const sorted = sortByCategory(state.items, state.categoryOrder);
 
     // Reveal the global clear-filter control only while a filter is active.
     els.clearFilter.classList.toggle('hidden', gameId === null && category === null);
@@ -328,6 +351,7 @@
     }
     els.achievementsTableBody.replaceChildren(...sorted.map(renderAchievementRow));
     showAchievementsState('data');
+    updatePagination();
   }
 
   // ---------------------------------------------------------------------------
@@ -429,7 +453,10 @@
     select.addEventListener('change', () => {
       state.activeFilter = { gameId: gid, category: select.value || null };
       reflectFilterSelection();
-      renderAchievements();
+      // A filter change resets to page 1 and refetches (server-side filtering).
+      // Card badge counts are unfiltered, so leave the cards in place.
+      state.page = 1;
+      load({ rerenderGames: false });
     });
 
     grid.appendChild(select);
@@ -469,37 +496,88 @@
   function clearFilter() {
     state.activeFilter = { gameId: null, category: null };
     reflectFilterSelection();
-    renderAchievements();
+    // Clearing the filter resets to page 1 and refetches the full paged list.
+    // Card badge counts are unfiltered, so leave the cards in place.
+    state.page = 1;
+    load({ rerenderGames: false });
   }
 
-  async function load() {
+  // Build the query string for the achievements fetch from the active filter and
+  // the current page. A category filter takes precedence over a whole-game one;
+  // the Ungrouped card's sentinel gameId is sent as-is.
+  function buildAchievementsQuery() {
+    const params = new URLSearchParams();
+    params.set('page', String(state.page));
+    params.set('pageSize', String(PAGE_SIZE));
+    const { gameId, category } = state.activeFilter;
+    if (category) {
+      params.set('category', category);
+    } else if (gameId !== null && gameId !== undefined) {
+      params.set('gameId', String(gameId));
+    }
+    return params.toString();
+  }
+
+  // opts.rerenderGames: rebuild the games overview cards (full/first load or after
+  // a create). Pure page navigation leaves the cards in place to avoid select
+  // flicker, but still reflects the active filter selection.
+  async function load(opts = {}) {
+    const { rerenderGames = true } = opts;
     showAchievementsState('loading');
-    showGamesOverviewState('loading');
+    if (rerenderGames) {
+      showGamesOverviewState('loading');
+    }
     try {
-      const res = await fetch(`/api/achievements-and-roles?page=1&pageSize=${PAGE_SIZE}`);
+      const res = await fetch(`/api/achievements-and-roles?${buildAchievementsQuery()}`);
       if (!res.ok) {
         throw new Error(`Request failed with status ${res.status}`);
       }
       const data = await res.json();
-      const { items, pagination, categories, games } = data.achievements;
+      const { items, pagination, categories, games, totalAchievements } = data.achievements;
 
-      els.statAchievements.textContent = String(pagination.total);
+      // Summary stat tile shows the unfiltered grand total, not the filtered
+      // pagination.total, so it stays constant while filtering.
+      els.statAchievements.textContent = String(totalAchievements);
       state.items = items;
       state.categoryOrder = categories || [];
-      state.games = games || [];
-      renderGamesOverview();
+      state.pagination = pagination;
+      // Adopt the server's clamped page so a stale high page number snaps back.
+      state.page = pagination.page;
+      if (rerenderGames) {
+        state.games = games || [];
+        renderGamesOverview();
+      } else {
+        // Keep the existing cards; just re-reflect the active filter.
+        reflectFilterSelection();
+      }
       populateRoleCategorySelect(state.categoryOrder);
       renderAchievements();
     } catch (err) {
       console.error('Failed to load achievements and roles', err);
       els.achievementsError.textContent = 'Failed to load achievements. Please try again later.';
       showAchievementsState('error');
-      els.gamesOverviewError.textContent = 'Failed to load games.';
-      showGamesOverviewState('error');
+      if (rerenderGames) {
+        els.gamesOverviewError.textContent = 'Failed to load games.';
+        showGamesOverviewState('error');
+      }
     }
   }
 
   els.clearFilter.addEventListener('click', clearFilter);
+
+  // Prev/Next paginate within the current filter without rebuilding the games
+  // overview. Guard against stepping past the known bounds.
+  els.achievementsPrev.addEventListener('click', () => {
+    if (state.page <= 1) return;
+    state.page = Math.max(1, state.page - 1);
+    load({ rerenderGames: false });
+  });
+  els.achievementsNext.addEventListener('click', () => {
+    const totalPages = state.pagination ? state.pagination.totalPages : 1;
+    if (state.page >= totalPages) return;
+    state.page = Math.min(totalPages, state.page + 1);
+    load({ rerenderGames: false });
+  });
 
   // ---------------------------------------------------------------------------
   // Add role drawer
