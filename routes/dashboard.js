@@ -1,6 +1,7 @@
 import express from 'express';
 import { GetGuildRoles } from '../discordclient.js';
-import { getAchievementsPage, getAchievementCategoryOrder, rolesForFallback } from '../roles/catalog.js';
+import { getAchievementsPage, getAchievementCategoryOrder, getAchievementCategoryCounts, rolesForFallback } from '../roles/catalog.js';
+import { getGamesWithCategories } from '../roles/effectiveCatalog.js';
 import { getRoleIdByName } from '../roles/roleutils.js';
 
 const router = express.Router();
@@ -60,6 +61,10 @@ router.get('/api/achievements-and-roles', async (req, res) => {
     const roles = await getGuildRoles();
     const achievements = await getAchievementsPage(page, pageSize);
     achievements.categories = await getAchievementCategoryOrder();
+    // Games with nested categories + server-computed per-category counts, so the
+    // dashboard can group/filter the achievements table by game and category.
+    const categoryCounts = await getAchievementCategoryCounts();
+    achievements.games = await getGamesWithCategories(categoryCounts);
     achievements.items = achievements.items.map((item) => {
         const roleId = getRoleIdByName(roles, item.name);
         const discordRole = roleId ? roles.find((role) => role.id === roleId) : undefined;

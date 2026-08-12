@@ -1,4 +1,5 @@
 import { getAchievementDefs, getAllDefs, getAchievementCategories, getCollectionCategoryNames } from './effectiveCatalog.js';
+import { countAchievementCategories } from './catalogUtils.js';
 
 function normalizeAchievement(def) {
     return {
@@ -32,6 +33,14 @@ export async function getAchievementCategoryOrder() {
         return fromCollection;
     }
     return await getAchievementCategories();
+}
+
+// Per-category achievement counts across ALL achievement defs (not just the
+// current page), so the dashboard's per-game/per-category totals stay accurate
+// beyond one page of results. Returns a plain object categoryName -> count.
+export async function getAchievementCategoryCounts() {
+    const all = await getAchievementDefs();
+    return countAchievementCategories(all);
 }
 
 export async function rolesForFallback() {

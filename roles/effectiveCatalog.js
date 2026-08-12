@@ -1,14 +1,19 @@
 import 'dotenv/config';
-import { getAllManagedRoles, getAllCategories } from '../mongo.js';
-import { toColorHex, generateUniqueCustomIdFrom } from './catalogUtils.js';
+import { getAllManagedRoles, getAllCategories, getAllGames } from '../mongo.js';
+import { toColorHex, generateUniqueCustomIdFrom, buildGamesWithCategories } from './catalogUtils.js';
 
 const TTL_MS = 60_000;
 
 // Module-level cache: last-known-good defs plus expiry timestamp.
 const cache = { defs: null, expiresAt: 0 };
 
-// Separate cache for the Category collection (authoritative category names).
-const categoryCache = { names: null, expiresAt: 0 };
+// Separate cache for the Category collection (authoritative category rows,
+// ordered by `order`). Holds full rows so both the name list and the
+// game->category grouping can be derived from one fetch.
+const categoryCache = { rows: null, expiresAt: 0 };
+
+// Parallel cache for the Game collection (mirrors categoryCache).
+const gamesCache = { rows: null, expiresAt: 0 };
 
 function normalize(doc) {
     return {
@@ -121,37 +126,78 @@ export function invalidate() {
 }
 
 // Category-collection loader (TTL cache + last-known-good), independent of the
-// role-defs cache. Returns category names ordered by their `order` field.
-async function loadCategoryNames() {
+// role-defs cache. Returns full category rows ordered by their `order` field.
+async function loadCategories() {
     const now = Date.now();
-    if (categoryCache.names && now < categoryCache.expiresAt) {
-        return categoryCache.names;
+    if (categoryCache.rows && now < categoryCache.expiresAt) {
+        return categoryCache.rows;
     }
 
     let rows;
     try {
         rows = await getAllCategories(process.env.GUILD_ID);
     } catch {
-        return categoryCache.names ?? [];
+        return categoryCache.rows ?? [];
     }
 
     if (!Array.isArray(rows)) {
-        return categoryCache.names ?? [];
+        return categoryCache.rows ?? [];
     }
 
-    const names = rows.map((r) => r.name);
-    categoryCache.names = names;
+    categoryCache.rows = rows;
     categoryCache.expiresAt = now + TTL_MS;
-    return names;
+    return rows;
 }
 
 // Authoritative category names from the Category collection (empty array before
 // the games migration has run). Consumers should fall back as appropriate.
 export async function getCollectionCategoryNames() {
-    return [...(await loadCategoryNames())];
+    return (await loadCategories()).map((r) => r.name);
 }
 
 export function invalidateCategories() {
-    categoryCache.names = null;
+    categoryCache.rows = null;
     categoryCache.expiresAt = 0;
+}
+
+// Game-collection loader (TTL cache + last-known-good), mirroring loadCategories.
+// Returns full game rows ({ _id, name, slug }).
+async function loadGames() {
+    const now = Date.now();
+    if (gamesCache.rows && now < gamesCache.expiresAt) {
+        return gamesCache.rows;
+    }
+
+    let rows;
+    try {
+        rows = await getAllGames(process.env.GUILD_ID);
+    } catch {
+        return gamesCache.rows ?? [];
+    }
+
+    if (!Array.isArray(rows)) {
+        return gamesCache.rows ?? [];
+    }
+
+    gamesCache.rows = rows;
+    gamesCache.expiresAt = now + TTL_MS;
+    return rows;
+}
+
+export function invalidateGames() {
+    gamesCache.rows = null;
+    gamesCache.expiresAt = 0;
+}
+
+/**
+ * Games with their nested categories and per-category achievement counts.
+ * `counts` is an optional categoryName -> count map (from
+ * getAchievementCategoryCounts) folded into each nested category (and summed per
+ * game); omitted counts default to 0. Categories whose gameId matches no game
+ * fall into a synthetic "Ungrouped" bucket (id null), included only when
+ * non-empty. See buildGamesWithCategories for the shape.
+ */
+export async function getGamesWithCategories(counts = {}) {
+    const [games, categories] = await Promise.all([loadGames(), loadCategories()]);
+    return buildGamesWithCategories(games, categories, counts);
 }
